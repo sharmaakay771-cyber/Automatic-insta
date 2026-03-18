@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instagram Automation App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --card: rgba(255, 255, 255, 0.05);
+      --text: #e9e9f2;
+      --muted: #9aa0b2;
+      --neon1: #8a2be2;
+      --neon2: #00f0ff;
+      --neon3: #ff00ff;
+      --success: #24d896;
+      --danger: #ff5d73;
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: radial-gradient(circle at top right, rgba(138, 43, 226, 0.15), transparent 35%),
+                  radial-gradient(circle at bottom left, rgba(0, 240, 255, 0.15), transparent 35%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .screen {
+      min-height: 100vh;
+      width: 100%;
+      padding: 20px 16px 90px;
+      display: none;
+      animation: fadeIn .4s ease;
+    }
+
+    .screen.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #splash {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 18px;
+      padding-bottom: 40px;
+    }
+
+    .logo {
+      width: 92px;
+      height: 92px;
+      border-radius: 30px;
+      background: linear-gradient(145deg, rgba(138, 43, 226, 0.25), rgba(0, 240, 255, 0.2));
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 0 20px rgba(138, 43, 226, 0.65), 0 0 28px rgba(0, 240, 255, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.07); }
+    }
+
+    .logo i { font-size: 40px; color: var(--neon2); }
+
+    h1, h2, h3 {
+      margin: 0;
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: .4px;
+    }
+
+    .muted { color: var(--muted); }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.09);
+      backdrop-filter: blur(8px);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 0 16px rgba(138,43,226,0.12);
+      padding: 16px;
+      margin-top: 14px;
+    }
+
+    .neon-border {
+      border: 1px solid transparent;
+      background-image: linear-gradient(var(--card), var(--card)), linear-gradient(120deg, var(--neon1), var(--neon2), var(--neon3));
+      background-origin: border-box;
+      background-clip: padding-box, border-box;
+    }
+
+    .input, .textarea, .select {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 12px;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      margin-top: 8px;
+    }
+
+    .textarea { min-height: 92px; resize: vertical; }
+
+    .row { display: flex; gap: 10px; }
+    .row > * { flex: 1; }
+
+    .btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px;
+      color: #fff;
+      background: linear-gradient(120deg, var(--neon1), var(--neon2));
+      font-weight: 600;
+      margin-top: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 14px rgba(138, 43, 226, 0.4);
+    }
+
+    .btn.secondary {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: none;
+    }
+
+    .btn.danger { background: linear-gradient(120deg, #ff4f6d, #ff7b44); }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border: none;
+      color: var(--text);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.07);
+      margin-left: 8px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .stat {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      text-align: center;
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .quick-actions button {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: #fff;
+      border-radius: 14px;
+      padding: 10px 8px;
+      font-size: 12px;
+    }
+
+    canvas { width: 100%; height: 160px; background: rgba(0,0,0,0.2); border-radius: 16px; }
+
+    .feature {
+      display: none;
+      animation: fadeIn .4s ease;
+    }
+    .feature.active { display: block; }
+
+    .feature-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .switch {
+      position: relative;
+      width: 50px;
+      height: 28px;
+      display: inline-block;
+    }
+
+    .switch input { display: none; }
+
+    .switch .slider {
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      background: rgba(255,255,255,.2);
+      transition: .25s;
+    }
+
+    .switch .slider::before {
+      content: "";
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      left: 3px;
+      top: 3px;
+      background: white;
+      transition: .25s;
+    }
+
+    .switch input:checked + .slider {
+      background: linear-gradient(120deg, var(--neon1), var(--neon2));
+      box-shadow: 0 0 10px rgba(0,240,255,.5);
+    }
+
+    .switch input:checked + .slider::before { transform: translateX(22px); }
+
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .list {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .list-item {
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .progress-wrap {
+      margin-top: 10px;
+      width: 100%;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      height: 10px;
+    }
+
+    .progress {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--neon1), var(--neon2));
+      transition: width .4s ease;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(12,12,12,0.92);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      padding: 8px;
+      z-index: 25;
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      gap: 4px;
+      font-size: 11px;
+      padding: 6px 2px;
+    }
+
+    .nav-btn.active {
+      color: var(--neon2);
+      text-shadow: 0 0 8px rgba(0,240,255,0.8);
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 82px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(255,255,255,0.2);
+      display: none;
+      z-index: 30;
+    }
+
+    #login h2 { margin-top: 10px; }
+
+    .hidden { display: none !important; }
+
+    @media (min-width: 620px) {
+      .screen { max-width: 420px; margin: auto; }
+      .bottom-nav { max-width: 420px; margin: auto; }
+    }
+  </style>
+</head>
+<body>
+  <section id="splash" class="screen active">
+    <div class="logo"><i class="fa-brands fa-instagram"></i></div>
+    <h1>Insta Auto</h1>
+    <p class="muted">Dark Neon Creator Suite</p>
+  </section>
+
+  <section id="login" class="screen">
+    <div class="card neon-border">
+      <h2>Welcome Creator</h2>
+      <p class="muted">Login to continue</p>
+      <input id="username" class="input" placeholder="Enter username" maxlength="30" />
+      <button id="loginBtn" class="btn">Login</button>
+      <button id="guestBtn" class="btn secondary">Continue as Guest</button>
+    </div>
+  </section>
+
+  <section id="app" class="screen">
+    <div class="topbar">
+      <div class="row" style="flex: 1; align-items: center; gap: 10px;">
+        <div class="avatar"><i class="fa-solid fa-user"></i></div>
+        <div>
+          <h3 id="welcomeName">@creator</h3>
+          <div class="muted" style="font-size: 12px;">Automation Control Center</div>
+        </div>
+      </div>
+      <div>
+        <button class="icon-btn" id="notifyBtn"><i class="fa-regular fa-bell"></i></button>
+        <button class="icon-btn" id="quickSettingsBtn"><i class="fa-solid fa-gear"></i></button>
+      </div>
+    </div>
+
+    <div id="tab-dashboard" class="feature active">
+      <div class="stats-grid">
+        <div class="stat"><div class="muted">Followers</div><h3 id="followersStat">0</h3></div>
+        <div class="stat"><div class="muted">Following</div><h3 id="followingStat">0</h3></div>
+        <div class="stat"><div class="muted">Engagement</div><h3 id="engagementStat">0%</h3></div>
+      </div>
+
+      <div class="card">
+        <div class="feature-title"><h3>Growth Graph</h3></div>
+        <canvas id="growthChart" width="360" height="160"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Quick Actions</h3>
+        <div class="quick-actions">
+          <button data-target="tab-reply"><i class="fa-solid fa-reply"></i><br />Reply</button>
+          <button data-target="tab-dm"><i class="fa-solid fa-paper-plane"></i><br />Bulk DM</button>
+          <button data-target="tab-like"><i class="fa-solid fa-heart"></i><br />Auto Like</button>
+          <button data-target="tab-post"><i class="fa-solid fa-calendar"></i><br />Schedule</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-reply" class="feature">
+      <div class="card neon-border">
+        <div class="feature-title">
+          <h3>Auto Reply System</h3>
+          <label class="switch"><input id="autoReplyToggle" type="checkbox" /><span class="slider"></span></label>
+        </div>
+        <input id="replyKeyword" class="input" placeholder="Keyword" />
+        <input id="replyText" class="input" placeholder="Reply text" />
+        <button id="saveReplyBtn" class="btn">Add Auto Reply</button>
+        <div id="autoReplyList" class="list"></div>
+      </div>
+    </div>
+
+    <div id="tab-dm" class="feature">
+      <div class="card neon-border">
+        <h3>Bulk DM Sender</h3>
+        <textarea id="dmMessage" class="textarea" placeholder="Message"></textarea>
+        <textarea id="dmUsers" class="textarea" placeholder="Usernames (comma separated)"></textarea>
+        <button id="startDmBtn" class="btn">Start Sending</button>
+        <div class="progress-wrap"><div id="dmProgress" class="progress"></div></div>
+        <div id="dmStatus" class="muted" style="margin-top: 8px;">Idle</div>
+      </div>
+    </div>
+
+    <div id="tab-like" class="feature">
+      <div class="card neon-border">
+        <h3>Auto Like System</h3>
+        <input id="hashtagsInput" class="input" placeholder="#fitness, #travel" />
+        <input id="dailyLimit" type="number" min="1" class="input" placeholder="Daily limit" />
+        <div class="row">
+          <button id="startLikeBtn" class="btn">Start</button>
+          <button id="stopLikeBtn" class="btn secondary">Stop</button>
+        </div>
+        <div id="likeState" class="muted" style="margin-top: 8px;">Stopped</div>
+      </div>
+
+      <div class="card neon-border">
+        <h3>Auto Follow / Unfollow</h3>
+        <input id="targetUser" class="input" placeholder="Target account / niche" />
+        <div class="row">
+          <button id="followBtn" class="btn">Follow</button>
+          <button id="unfollowBtn" class="btn danger">Unfollow</button>
+        </div>
+        <div id="followStatus" class="muted" style="margin-top: 8px;">No action yet</div>
+      </div>
+    </div>
+
+    <div id="tab-post" class="feature">
+      <div class="card neon-border">
+        <h3>Post Scheduler</h3>
+        <input id="postImage" class="input" type="url" placeholder="Image URL" />
+        <textarea id="postCaption" class="textarea" placeholder="Caption"></textarea>
+        <input id="postTags" class="input" placeholder="#reel #creator" />
+        <input id="postTime" class="input" type="datetime-local" />
+        <button id="scheduleBtn" class="btn">Save Schedule</button>
+        <div id="scheduledList" class="list"></div>
+      </div>
+    </div>
+
+    <div id="tab-ai" class="feature">
+      <div class="card neon-border">
+        <h3>AI Tools</h3>
+        <input id="aiTopic" class="input" placeholder="Topic (e.g. travel reels)" />
+        <div class="row">
+          <button id="genCaptionBtn" class="btn">Caption Generator</button>
+          <button id="genHashBtn" class="btn secondary">Hashtag Generator</button>
+        </div>
+        <textarea id="aiOutput" class="textarea" placeholder="Generated output"></textarea>
+      </div>
+      <div class="card">
+        <h3>Analytics</h3>
+        <canvas id="analyticsChart" width="360" height="160"></canvas>
+        <div class="chip-list" id="activityStats"></div>
+      </div>
+    </div>
+
+    <div id="tab-settings" class="feature">
+      <div class="card neon-border">
+        <h3>Settings</h3>
+        <div class="row" style="align-items: center; margin-top: 8px;">
+          <span>Push Notifications</span>
+          <label class="switch"><input id="notifyToggle" type="checkbox" checked /><span class="slider"></span></label>
+        </div>
+        <div class="row" style="align-items: center; margin-top: 8px;">
+          <span>Safe Mode</span>
+          <label class="switch"><input id="safeModeToggle" type="checkbox" checked /><span class="slider"></span></label>
+        </div>
+        <button id="logoutBtn" class="btn danger">Logout</button>
+      </div>
+
+      <div class="card neon-border">
+        <h3>Multi Account Manager</h3>
+        <input id="newAccount" class="input" placeholder="Add account username" />
+        <button id="addAccountBtn" class="btn">Add Account</button>
+        <div id="accountList" class="list"></div>
+      </div>
+    </div>
+
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="nav-btn active" data-tab="dashboard"><i class="fa-solid fa-house"></i><span>Home</span></button>
+      <button class="nav-btn" data-tab="reply"><i class="fa-solid fa-reply"></i><span>Reply</span></button>
+      <button class="nav-btn" data-tab="like"><i class="fa-solid fa-heart"></i><span>Automation</span></button>
+      <button class="nav-btn" data-tab="post"><i class="fa-solid fa-calendar"></i><span>Post</span></button>
+      <button class="nav-btn" data-tab="settings"><i class="fa-solid fa-gear"></i><span>Settings</span></button>
+    </nav>
+  </section>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    let db = null;
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+    } catch (e) {
+      console.warn('Firebase init failed, local mode active', e);
+    }
+
+    const state = {
+      userId: localStorage.getItem('instaUserId') || '',
+      username: localStorage.getItem('instaUsername') || '',
+      autoReplies: JSON.parse(localStorage.getItem('autoReplies') || '[]'),
+      scheduledPosts: JSON.parse(localStorage.getItem('scheduledPosts') || '[]'),
+      accounts: JSON.parse(localStorage.getItem('accounts') || '[]'),
+      settings: JSON.parse(localStorage.getItem('userSettings') || '{"notify":true,"safe":true}'),
+      stats: JSON.parse(localStorage.getItem('stats') || '{"followers":1200,"following":340,"engagement":8.6}')
+    };
+
+    const el = (id) => document.getElementById(id);
+    const screens = { splash: el('splash'), login: el('login'), app: el('app') };
+
+    function showScreen(id) {
+      Object.values(screens).forEach(s => s.classList.remove('active'));
+      screens[id].classList.add('active');
+    }
+
+    function toast(msg) {
+      const t = el('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.style.display = 'none', 1700);
+    }
+
+    function createUserId(name) {
+      return name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 18) + Date.now().toString().slice(-4);
+    }
+
+    function dbSet(path, data) {
+      if (!db) return Promise.resolve();
+      return db.ref(path).set(data).catch(() => {});
+    }
+
+    function dbPush(path, data) {
+      if (!db) return Promise.resolve();
+      return db.ref(path).push(data).catch(() => {});
+    }
+
+    function dbOn(path, cb) {
+      if (!db) return;
+      db.ref(path).on('value', s => cb(s.val()));
+    }
+
+    function renderStats() {
+      el('followersStat').textContent = state.stats.followers;
+      el('followingStat').textContent = state.stats.following;
+      el('engagementStat').textContent = `${state.stats.engagement}%`;
+      localStorage.setItem('stats', JSON.stringify(state.stats));
+    }
+
+    function drawLine(canvasId, points, stroke) {
+      const canvas = el(canvasId);
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 4; i++) {
+        const y = (h / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      const max = Math.max(...points, 1);
+      const min = Math.min(...points, 0);
+      const range = Math.max(max - min, 1);
+
+      ctx.beginPath();
+      points.forEach((p, i) => {
+        const x = (w / (points.length - 1 || 1)) * i;
+        const y = h - ((p - min) / range) * (h - 20) - 10;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 3;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = stroke;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    function renderAutoReplies() {
+      const list = el('autoReplyList');
+      list.innerHTML = '';
+      state.autoReplies.forEach((item) => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.textContent = `${item.keyword} → ${item.reply}`;
+        list.appendChild(div);
+      });
+      localStorage.setItem('autoReplies', JSON.stringify(state.autoReplies));
+    }
+
+    function renderScheduled() {
+      const list = el('scheduledList');
+      list.innerHTML = '';
+      state.scheduledPosts.slice().reverse().forEach((item) => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = `<strong>${item.time}</strong><br>${item.caption}<br><span class="muted">${item.image}</span>`;
+        list.appendChild(div);
+      });
+      localStorage.setItem('scheduledPosts', JSON.stringify(state.scheduledPosts));
+    }
+
+    function renderAccounts() {
+      const list = el('accountList');
+      list.innerHTML = '';
+      state.accounts.forEach((name, idx) => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = `<span>@${name}</span> <button class="btn secondary" style="margin:0; padding:6px 10px; float:right;" data-idx="${idx}">Switch</button>`;
+        list.appendChild(div);
+      });
+      localStorage.setItem('accounts', JSON.stringify(state.accounts));
+    }
+
+    function setUser(username, guest = false) {
+      state.username = username;
+      state.userId = createUserId(username);
+      localStorage.setItem('instaUsername', username);
+      localStorage.setItem('instaUserId', state.userId);
+      if (!state.accounts.includes(username) && !guest) state.accounts.unshift(username);
+      renderAccounts();
+      el('welcomeName').textContent = '@' + username;
+
+      const userData = {
+        username,
+        stats: state.stats,
+        automationSettings: {
+          autoReplyEnabled: el('autoReplyToggle').checked,
+          notifications: el('notifyToggle').checked,
+          safeMode: el('safeModeToggle').checked
+        }
+      };
+      dbSet(`users/${state.userId}`, userData);
+      showScreen('app');
+    }
+
+    function setActiveTab(tab) {
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+      document.querySelectorAll('.feature').forEach(f => f.classList.remove('active'));
+      const target = el(`tab-${tab}`) || el('tab-dashboard');
+      target.classList.add('active');
+      if (tab === 'ai') renderAnalytics();
+      if (tab === 'dashboard') renderDashboardChart();
+    }
+
+    function renderDashboardChart() {
+      const p = Array.from({ length: 7 }, () => Math.floor(800 + Math.random() * 700));
+      drawLine('growthChart', p, '#00f0ff');
+    }
+
+    function renderAnalytics() {
+      const points = Array.from({ length: 7 }, () => Math.floor(20 + Math.random() * 85));
+      drawLine('analyticsChart', points, '#ff00ff');
+      const total = points.reduce((a, b) => a + b, 0);
+      const avg = Math.round(total / points.length);
+      el('activityStats').innerHTML = `
+        <span class="chip"><i class="fa-solid fa-chart-line"></i> Avg Reach: ${avg}%</span>
+        <span class="chip"><i class="fa-solid fa-comment"></i> Replies: ${state.autoReplies.length}</span>
+        <span class="chip"><i class="fa-solid fa-calendar-check"></i> Scheduled: ${state.scheduledPosts.length}</span>
+      `;
+    }
+
+    function bootstrap() {
+      el('notifyToggle').checked = !!state.settings.notify;
+      el('safeModeToggle').checked = !!state.settings.safe;
+      renderStats();
+      renderAutoReplies();
+      renderScheduled();
+      renderAccounts();
+      renderDashboardChart();
+      renderAnalytics();
+
+      if (state.username) {
+        el('welcomeName').textContent = '@' + state.username;
+        showScreen('app');
+      } else {
+        setTimeout(() => showScreen('login'), 1800);
+      }
+
+      if (state.userId) {
+        dbOn(`autoReply/${state.userId}`, (data) => {
+          if (!data) return;
+          state.autoReplies = Object.values(data);
+          renderAutoReplies();
+        });
+        dbOn(`scheduledPosts/${state.userId}`, (data) => {
+          if (!data) return;
+          state.scheduledPosts = Object.values(data);
+          renderScheduled();
+        });
+      }
+    }
+
+    el('loginBtn').addEventListener('click', () => {
+      const username = el('username').value.trim();
+      if (username.length < 3) return toast('Enter at least 3 characters');
+      setUser(username);
+      toast('Logged in');
+    });
+
+    el('guestBtn').addEventListener('click', () => {
+      const guest = 'guest' + Math.floor(Math.random() * 1000);
+      setUser(guest, true);
+      toast('Guest mode enabled');
+    });
+
+    el('saveReplyBtn').addEventListener('click', () => {
+      if (!state.userId) return toast('Login first');
+      const keyword = el('replyKeyword').value.trim();
+      const reply = el('replyText').value.trim();
+      if (!keyword || !reply) return toast('Keyword and reply required');
+      const obj = { keyword, reply, enabled: el('autoReplyToggle').checked };
+      state.autoReplies.push(obj);
+      renderAutoReplies();
+      dbPush(`autoReply/${state.userId}`, obj);
+      el('replyKeyword').value = '';
+      el('replyText').value = '';
+      toast('Auto reply saved');
+    });
+
+    el('autoReplyToggle').addEventListener('change', (e) => {
+      if (!state.userId) return;
+      dbSet(`users/${state.userId}/automationSettings/autoReplyEnabled`, e.target.checked);
+      toast(`Auto reply ${e.target.checked ? 'enabled' : 'disabled'}`);
+    });
+
+    el('startDmBtn').addEventListener('click', () => {
+      const message = el('dmMessage').value.trim();
+      const users = el('dmUsers').value.split(',').map(u => u.trim()).filter(Boolean);
+      if (!message || !users.length) return toast('Message and user list required');
+
+      let i = 0;
+      const total = users.length;
+      el('dmStatus').textContent = `Sending to ${total} users...`;
+      const timer = setInterval(() => {
+        i++;
+        const progress = Math.min(100, Math.round((i / total) * 100));
+        el('dmProgress').style.width = progress + '%';
+        el('dmStatus').textContent = i >= total ? 'Completed' : `Sent to ${i}/${total}`;
+        if (i >= total) {
+          clearInterval(timer);
+          toast('Bulk DM complete');
+        }
+      }, 450);
+    });
+
+    el('startLikeBtn').addEventListener('click', () => {
+      const tags = el('hashtagsInput').value.trim();
+      const limit = Number(el('dailyLimit').value);
+      if (!tags || !limit) return toast('Hashtags and daily limit required');
+      el('likeState').textContent = `Running (${limit}/day) on ${tags}`;
+      if (state.userId) dbSet(`users/${state.userId}/automationSettings/autoLike`, { tags, limit, running: true });
+      toast('Auto like started');
+    });
+
+    el('stopLikeBtn').addEventListener('click', () => {
+      el('likeState').textContent = 'Stopped';
+      if (state.userId) dbSet(`users/${state.userId}/automationSettings/autoLike/running`, false);
+      toast('Auto like stopped');
+    });
+
+    el('followBtn').addEventListener('click', () => {
+      const target = el('targetUser').value.trim();
+      if (!target) return toast('Target required');
+      el('followStatus').textContent = `Following users from ${target}`;
+      toast('Follow automation enabled');
+    });
+
+    el('unfollowBtn').addEventListener('click', () => {
+      const target = el('targetUser').value.trim();
+      if (!target) return toast('Target required');
+      el('followStatus').textContent = `Unfollowing inactive from ${target}`;
+      toast('Unfollow automation enabled');
+    });
+
+    el('scheduleBtn').addEventListener('click', () => {
+      if (!state.userId) return toast('Login first');
+      const image = el('postImage').value.trim();
+      const caption = el('postCaption').value.trim();
+      const hashtags = el('postTags').value.trim();
+      const time = el('postTime').value;
+      if (!image || !caption || !time) return toast('Image URL, caption and time required');
+
+      const post = { image, caption: `${caption} ${hashtags}`.trim(), time };
+      state.scheduledPosts.push(post);
+      renderScheduled();
+      dbPush(`scheduledPosts/${state.userId}`, post);
+      toast('Post scheduled');
+    });
+
+    el('genCaptionBtn').addEventListener('click', () => {
+      const topic = el('aiTopic').value.trim() || 'creator life';
+      const text = `✨ Turning ${topic} into stories worth sharing. Consistency + creativity = growth. 🚀`;
+      el('aiOutput').value = text;
+    });
+
+    el('genHashBtn').addEventListener('click', () => {
+      const topic = (el('aiTopic').value.trim() || 'creator').replace(/\s+/g, '');
+      el('aiOutput').value = `#${topic} #InstaGrowth #ContentCreator #ReelsDaily #SocialMediaTips #ViralContent`;
+    });
+
+    el('addAccountBtn').addEventListener('click', () => {
+      const account = el('newAccount').value.trim().replace('@', '');
+      if (!account) return toast('Enter account username');
+      if (!state.accounts.includes(account)) state.accounts.unshift(account);
+      renderAccounts();
+      el('newAccount').value = '';
+      toast('Account added');
+    });
+
+    el('accountList').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-idx]');
+      if (!btn) return;
+      const account = state.accounts[Number(btn.dataset.idx)];
+      if (!account) return;
+      setUser(account);
+      toast('Switched to @' + account);
+    });
+
+    el('notifyToggle').addEventListener('change', (e) => {
+      state.settings.notify = e.target.checked;
+      localStorage.setItem('userSettings', JSON.stringify(state.settings));
+    });
+
+    el('safeModeToggle').addEventListener('change', (e) => {
+      state.settings.safe = e.target.checked;
+      localStorage.setItem('userSettings', JSON.stringify(state.settings));
+    });
+
+    el('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('instaUsername');
+      localStorage.removeItem('instaUserId');
+      state.username = '';
+      state.userId = '';
+      showScreen('login');
+      toast('Logged out');
+    });
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+    });
+
+    document.querySelectorAll('.quick-actions button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabId = btn.dataset.target.replace('tab-', '');
+        setActiveTab(tabId);
+      });
+    });
+
+    el('notifyBtn').addEventListener('click', () => toast('No new notifications'));
+    el('quickSettingsBtn').addEventListener('click', () => setActiveTab('settings'));
+
+    bootstrap();
+  </script>
+</body>
+</html>
