@@ -262,7 +262,13 @@
       settings: JSON.parse(localStorage.getItem('ai_settings') || '{"pushAlerts":true,"neonFx":true,"safeMode":false}'),
       stats: JSON.parse(localStorage.getItem('ai_stats') || '{}')
     };
-    const uid = () => state.userId || ('u_' + Math.random().toString(36).slice(2, 10));
+    const uid = () => {
+      if (state.userId) return state.userId;
+      if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+      const nextCounter = Number(localStorage.getItem('ai_uid_counter') || '0') + 1;
+      localStorage.setItem('ai_uid_counter', String(nextCounter));
+      return 'u_' + Date.now().toString(36) + '_' + nextCounter.toString(36);
+    };
     function saveLocal() {
       localStorage.setItem('ai_user_id', state.userId);
       localStorage.setItem('ai_username', state.username);
@@ -315,7 +321,11 @@
     const renderReplies = () => { dom.replyList.innerHTML = state.autoReplies.map((r, i) => `<div class="list-item"><span><b>${r.keyword}</b>: ${r.reply}</span><button class="icon-btn" onclick="removeReply(${i})"><i class="fa-solid fa-xmark"></i></button></div>`).join('') || '<div class="muted tiny">No reply rules yet</div>'; };
     const renderPosts = () => { dom.postList.innerHTML = state.scheduled.map((p, i) => `<div class="list-item"><span>${p.time}<br><span class='muted tiny'>${p.caption.slice(0,48)}</span></span><button class='icon-btn' onclick='removePost(${i})'><i class="fa-solid fa-trash"></i></button></div>`).join('') || '<div class="muted tiny">No scheduled posts yet</div>'; };
     const renderAccounts = () => { dom.accountList.innerHTML = state.accountList.map((a, i) => `<div class="list-item"><span>@${a}</span><button class="btn alt tiny" style="width:auto;padding:7px 10px;margin:0" onclick="switchAccount(${i})">Switch</button></div>`).join('') || '<div class="muted tiny">No extra accounts</div>'; };
-    const sync = (path, payload) => { if (db && state.userId) db.ref(path).set(payload).catch(() => {}); };
+    const sync = (path, payload) => {
+      if (db && state.userId) {
+        db.ref(path).set(payload).catch(err => console.warn(`Firebase sync failed for user ${state.userId} at ${path}:`, err?.message || err));
+      }
+    };
     function startApp(name) {
       state.username = name; state.userId = uid();
       dom.greeting.textContent = 'Hi, ' + state.username;

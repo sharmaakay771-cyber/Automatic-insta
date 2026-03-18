@@ -166,7 +166,7 @@
       planList: document.getElementById('planList'),
       reportList: document.getElementById('reportList')
     };
-    const sync = (path, payload) => { if (db) db.ref(path).set(payload).catch(() => {}); };
+    const sync = (path, payload) => { if (db) db.ref(path).set(payload).catch(err => console.warn(`Admin Firebase sync failed at ${path}:`, err?.message || err)); };
     function refreshDashboard() {
       const total = state.users.length;
       const active = state.users.filter(u => !u.banned).length;
@@ -226,10 +226,7 @@
         dom.adminPanel.classList.remove('hidden');
         renderPlans(); renderReports(); applyFeaturesToUI(); loadUsersFromFirebase();
       };
-      if (!db) {
-        if (id === 'admin' && pwd === '1234') return success();
-        return alert('Invalid admin credentials');
-      }
+      if (!db) return alert('Firebase configuration required for admin access.');
       db.ref('/admin').once('value').then(snap => {
         const admin = snap.val() || {};
         if (id === String(admin.id || '') && pwd === String(admin.password || '')) return success();
