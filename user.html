@@ -529,8 +529,10 @@
 
     let db = null;
     try {
-      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-      db = firebase.database();
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+      }
     } catch (e) {
       console.warn('Firebase init failed, local mode active', e);
     }
@@ -562,7 +564,10 @@
     }
 
     function createUserId(name) {
-      return name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 18) + Date.now().toString().slice(-4);
+      const base = name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 18) || 'user';
+      const stamp = Date.now().toString(36);
+      const random = Math.random().toString(36).slice(2, 8);
+      return `${base}-${stamp}-${random}`;
     }
 
     function dbSet(path, data) {
@@ -606,12 +611,14 @@
 
       const max = Math.max(...points, 1);
       const min = Math.min(...points, 0);
-      const range = Math.max(max - min, 1);
+      const allEqual = max === min;
+      const range = allEqual ? 1 : (max - min);
 
       ctx.beginPath();
+      const pointDivisor = Math.max(points.length - 1, 1);
       points.forEach((p, i) => {
-        const x = (w / (points.length - 1 || 1)) * i;
-        const y = h - ((p - min) / range) * (h - 20) - 10;
+        const x = (w / pointDivisor) * i;
+        const y = allEqual ? h / 2 : h - ((p - min) / range) * (h - 20) - 10;
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       });
       ctx.strokeStyle = stroke;
@@ -745,8 +752,8 @@
     });
 
     el('guestBtn').addEventListener('click', () => {
-      const guest = 'guest' + Math.floor(Math.random() * 1000);
-      setUser(guest, true);
+      const guestUsername = 'guest' + Date.now().toString().slice(-5) + Math.floor(Math.random() * 100);
+      setUser(guestUsername, true);
       toast('Guest mode enabled');
     });
 
