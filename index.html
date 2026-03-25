@@ -622,16 +622,18 @@
       'use strict';
 
       const firebaseConfig = window.__JARVIS_FIREBASE_CONFIG__ || null;
-      const DEFAULT_PIN = localStorage.getItem('jarvisPin') || '1234';
-      const BATTERY_DRAIN_RATE = 0.8;
-      const BATTERY_LOW_THRESHOLD = 18;
-      const BATTERY_RESET_VALUE = 95;
+      const BATTERY_DRAIN_RATE_PERCENT = 0.8;
+      const BATTERY_LOW_THRESHOLD_PERCENT = 18;
+      const BATTERY_RESET_VALUE_PERCENT = 95;
       const DOUBLE_TAP_THRESHOLD_MS = 300;
       const VOICE_ACTIVATION_LONG_PRESS_MS = 700;
       const APP_LONG_PRESS_MS = 380;
       const PARTICLE_MIN = 30;
       const PARTICLE_MAX = 70;
       const PARTICLE_DENSITY_DIVISOR = 5;
+      const MAX_DEVICE_PIXEL_RATIO = 2;
+      const PARTICLE_COLOR_PRIMARY = 'rgba(0,247,255,0.7)';
+      const PARTICLE_COLOR_SECONDARY = 'rgba(0,123,255,0.56)';
 
       const state = {
         aiEnabled: true,
@@ -647,6 +649,7 @@
         activeThemeIndex: 0,
         usage: JSON.parse(localStorage.getItem('jarvisUsage') || '{}'),
         battery: 80,
+        batteryRecharging: false,
         appList: [
           { name: 'YouTube', icon: '▶️', url: 'https://youtube.com', hidden: false },
           { name: 'WhatsApp', icon: '💬', url: 'https://web.whatsapp.com', hidden: false },
@@ -706,6 +709,38 @@
       let lastTapTime = 0;
       let particleBounds = { width: window.innerWidth, height: window.innerHeight };
 
+      function getConfiguredPin() {
+        let pin = localStorage.getItem('jarvisPin');
+        if (!/^\d{4}$/.test(pin || '')) {
+          pin = generateSecurePin();
+          while (isWeakPin(pin)) {
+            pin = generateSecurePin();
+          }
+          localStorage.setItem('jarvisPin', pin);
+          notify(`New secure launcher PIN: ${pin}`, true);
+        }
+        return pin;
+      }
+
+      function generateSecurePin() {
+        const source = new Uint32Array(1);
+        if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+          window.crypto.getRandomValues(source);
+          return String(1000 + (source[0] % 9000));
+        }
+        return String(1000 + Math.floor(Math.random() * 9000));
+      }
+
+      function isWeakPin(pin) {
+        if (!/^\d{4}$/.test(pin)) return true;
+        if (/^(\d)\1{3}$/.test(pin)) return true;
+        if (pin === '1234' || pin === '4321') return true;
+        const digits = pin.split('').map(Number);
+        const asc = digits.every((d, i) => i === 0 || d - digits[i - 1] === 1);
+        const desc = digits.every((d, i) => i === 0 || digits[i - 1] - d === 1);
+        return asc || desc;
+      }
+
       function initFirebase() {
         try {
           if (!window.firebase || !isValidFirebaseConfig(firebaseConfig)) {
@@ -759,7 +794,10 @@
         if (!config || typeof config !== 'object' || !config.databaseURL) return false;
         try {
           const parsed = new URL(String(config.databaseURL));
-          return parsed.protocol === 'https:' && !!config.apiKey && !!config.projectId;
+          const apiKey = String(config.apiKey || '').trim();
+          const projectId = String(config.projectId || '').trim();
+          const isTrustedHost = /(^|\.)firebaseio\.com$|(^|\.)firebasedatabase\.app$/i.test(parsed.hostname);
+          return parsed.protocol === 'https:' && isTrustedHost && apiKey.length > 8 && projectId.length > 2;
         } catch (error) {
           return false;
         }
@@ -811,7 +849,7 @@
         if (!input) return;
 
         if (input.startsWith('search ')) {
-          const query = input.replace('search', '').trim();
+          const query = input.replace(/^search\s+/, '').trim();
           speak(`Searching ${query}`);
           openUrl('https://www.google.com/search?q=' + encodeURIComponent(query), 'Google Search');
           return;
@@ -889,6 +927,10 @@
           notify('Invalid target URL', true);
           return;
         }
+        if (/^(javascript|data|vbscript|file):/i.test(normalized)) {
+          notify('Blocked unsafe URL protocol', true);
+          return;
+        }
         let safeUrl = '';
         try {
           safeUrl = new URL(/^https?:\/\//i.test(normalized) ? normalized : `https://${normalized}`).toString();
@@ -908,10 +950,22 @@
       }
 
       function appTileTemplate(app) {
-        return `<button class="app-tile" data-name="${app.name}" data-url="${app.url}" type="button">
-          <span class="app-icon">${app.icon}</span>
-          <span class="app-label">${app.name}</span>
+        const safeName = escapeHtml(app.name);
+        const safeIcon = escapeHtml(app.icon);
+        const safeUrl = escapeHtml(app.url);
+        return `<button class="app-tile" data-name="${safeName}" data-url="${safeUrl}" type="button">
+          <span class="app-icon">${safeIcon}</span>
+          <span class="app-label">${safeName}</span>
         </button>`;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
       }
 
       function renderApps() {
@@ -930,10 +984,12 @@
 
       function bindTileInteractions(tile) {
         let pressed = false;
+        let tilePressTimer = null;
 
         const startPress = () => {
           pressed = true;
-          longPressTimer = setTimeout(() => {
+          clearTimeout(tilePressTimer);
+          tilePressTimer = setTimeout(() => {
             if (!pressed) return;
             tile.classList.add('long-pressing');
             notify(`Long press: ${tile.dataset.name}`);
@@ -943,7 +999,7 @@
 
         const endPress = () => {
           pressed = false;
-          clearTimeout(longPressTimer);
+          clearTimeout(tilePressTimer);
         };
 
         tile.addEventListener('touchstart', startPress, { passive: true });
@@ -982,7 +1038,7 @@
         }];
 
         el.suggestions.innerHTML = list.map((item, index) =>
-          `<button class="suggestion" data-index="${index}" type="button">${item.label}</button>`
+          `<button class="suggestion" data-index="${index}" type="button">${escapeHtml(item.label)}</button>`
         ).join('');
 
         el.suggestions.style.display = 'block';
@@ -1028,7 +1084,7 @@
 
       function unlockLauncher() {
         const pin = el.pinInput.value.trim();
-        if (pin === DEFAULT_PIN) {
+        if (pin === getConfiguredPin()) {
           state.locked = false;
           el.pinInput.value = '';
           el.pinModal.classList.remove('active');
@@ -1050,8 +1106,18 @@
         setInterval(updateClock, 1000);
 
         setInterval(() => {
-          state.battery -= Math.random() * BATTERY_DRAIN_RATE;
-          if (state.battery < BATTERY_LOW_THRESHOLD) state.battery = BATTERY_RESET_VALUE;
+          if (state.batteryRecharging) {
+            state.battery += 2.2;
+            if (state.battery >= BATTERY_RESET_VALUE_PERCENT) {
+              state.battery = BATTERY_RESET_VALUE_PERCENT;
+              state.batteryRecharging = false;
+            }
+          } else {
+            state.battery = Math.max(0, state.battery - (Math.random() * BATTERY_DRAIN_RATE_PERCENT));
+            if (state.battery < BATTERY_LOW_THRESHOLD_PERCENT) {
+              state.batteryRecharging = true;
+            }
+          }
           const pct = Math.max(1, Math.round(state.battery));
           el.batteryFill.style.width = pct + '%';
           el.batteryText.textContent = `Battery ${pct}%`;
@@ -1062,15 +1128,17 @@
         const h = now.getHours();
         if (h >= 5 && h < 12) {
           el.routineChip.textContent = 'Routine: Good morning, commander';
-        } else if (h >= 18 || h < 5) {
-          el.routineChip.textContent = 'Routine: Night protocol active';
-        } else {
+        } else if (h >= 12 && h < 18) {
           el.routineChip.textContent = 'Routine: Productivity mode engaged';
+        } else {
+          el.routineChip.textContent = 'Routine: Night protocol active';
         }
 
-        document.body.classList.toggle('night-boost', h >= 19 || h <= 5);
+        document.body.classList.toggle('night-boost', h >= 19 || h < 6);
 
-        if (h === 8 && now.getMinutes() === 0 && now.getSeconds() < 2) {
+        const routineKey = `jarvisMorningPrompt:${now.toDateString()}`;
+        if (h === 8 && now.getMinutes() <= 5 && now.getSeconds() === 0 && !localStorage.getItem(routineKey)) {
+          localStorage.setItem(routineKey, 'sent');
           notify('Morning suggestion: Review priorities and hydrate.', false);
         }
       }
@@ -1094,11 +1162,11 @@
             lockLauncher(true);
           }
           lastTapTime = now;
-
-          if (event.target.closest('.app-tile, .orb, #drawer')) return;
         });
 
         document.addEventListener('pointerdown', () => {
+          const active = document.activeElement;
+          if (active && /^(INPUT|TEXTAREA|BUTTON|SELECT)$/.test(active.tagName)) return;
           clearTimeout(longPressTimer);
           longPressTimer = setTimeout(() => startListening(), VOICE_ACTIVATION_LONG_PRESS_MS);
         });
@@ -1118,7 +1186,7 @@
         el.searchInput.addEventListener('input', (e) => searchSuggestions(e.target.value));
         el.searchInput.addEventListener('keydown', (event) => {
           if (event.key === 'Enter') {
-            runCommand(event.target.value.startsWith('search') ? event.target.value : 'search ' + event.target.value);
+            runCommand(event.target.value.startsWith('search ') ? event.target.value : 'search ' + event.target.value);
             el.suggestions.style.display = 'none';
           }
         });
@@ -1175,9 +1243,9 @@
         const dots = [];
 
         function resize() {
-          const dpr = Math.min(window.devicePixelRatio || 1, 2);
-          canvas.width = Math.floor(window.innerWidth * dpr);
-          canvas.height = Math.floor(window.innerHeight * dpr);
+          const dpr = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO);
+          canvas.width = Math.round(window.innerWidth * dpr);
+          canvas.height = Math.round(window.innerHeight * dpr);
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
           particleBounds = { width: canvas.width / dpr, height: canvas.height / dpr };
         }
@@ -1207,7 +1275,7 @@
             if (d.y < 0 || d.y > particleBounds.height) d.vy *= -1;
 
             ctx.beginPath();
-            ctx.fillStyle = i % 2 ? 'rgba(0,247,255,0.7)' : 'rgba(0,123,255,0.56)';
+            ctx.fillStyle = i % 2 ? PARTICLE_COLOR_PRIMARY : PARTICLE_COLOR_SECONDARY;
             ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
             ctx.fill();
           }
