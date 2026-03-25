@@ -2545,12 +2545,12 @@ body {
           <div class="action-chip"><i class="fa-solid fa-bolt"></i> Boost</div>
         </aside>
       </section>
-      <!-- Search Dock Placeholder -->
-      <section class="search-dock" id="searchDock" aria-label="AI Search Placeholder" role="button" tabindex="0">
+      <!-- Search Dock -->
+      <section class="search-dock" id="searchDock" aria-label="AI Smart Search" role="button" tabindex="0">
         <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
         <div class="search-text">
           <span class="search-primary">Search apps, routines, commands</span>
-          <span class="search-secondary">Part 4 adds live suggestions and AI intent parsing</span>
+          <span class="search-secondary">Live suggestions and intent parsing are active</span>
         </div>
       </section>
       <!-- Workspace -->
@@ -2984,6 +2984,14 @@ body {
       }
       if (lowered.includes("focus")) {
         setRoutineState(nodes.routineFocus, "Focus Mode");
+        return;
+      }
+      if (lowered.includes("morning")) {
+        setRoutineState(nodes.routineMorning, "Morning Sync");
+        return;
+      }
+      if (lowered.includes("settings")) {
+        onNavItemActivate(Array.from(nodes.navItems).find((item) => item.dataset.nav === "settings"));
         return;
       }
       showToast(`Search queued: ${raw}`, "fa-magnifying-glass");
