@@ -634,6 +634,24 @@ body {
   gap: 3px;
 }
 
+.routine-card.is-interactive {
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.routine-card.is-interactive:hover,
+.routine-card.is-interactive:focus-visible {
+  outline: none;
+  transform: translateY(-1px);
+  border-color: rgba(0,247,255,.4);
+  box-shadow: 0 0 12px rgba(0,247,255,.2);
+}
+
+.routine-card.is-done {
+  border-color: rgba(54,255,158,.42);
+  box-shadow: 0 0 12px rgba(54,255,158,.18);
+}
+
 .routine-title {
   font-size: 0.63rem;
   color: #bcefff;
@@ -667,6 +685,15 @@ body {
   gap: 4px;
   font-size: 0.6rem;
   color: #8db8cc;
+  cursor: pointer;
+  transition: color var(--transition-fast), transform var(--transition-fast), text-shadow var(--transition-fast);
+}
+
+.nav-item:hover,
+.nav-item:focus-visible {
+  outline: none;
+  color: #b9ecff;
+  transform: translateY(-1px);
 }
 
 .nav-item i {
@@ -683,6 +710,87 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 20;
+}
+
+.modals-root {
+  display: grid;
+  place-items: center;
+}
+
+.app-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 8, 18, 0.64);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  animation: modalFadeIn 200ms ease forwards;
+}
+
+.app-modal {
+  pointer-events: auto;
+  width: min(360px, calc(100% - 28px));
+  border-radius: 16px;
+  border: 1px solid rgba(0, 247, 255, 0.3);
+  background: linear-gradient(150deg, rgba(7, 20, 38, 0.96), rgba(4, 12, 24, 0.92));
+  box-shadow: 0 0 22px rgba(0, 247, 255, 0.22);
+  overflow: hidden;
+  transform: translateY(12px) scale(0.98);
+  opacity: 0;
+  animation: modalSlideIn 240ms cubic-bezier(.2,.7,.2,1) forwards;
+}
+
+.app-modal-head {
+  padding: 14px 14px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.app-modal-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+}
+
+.app-modal-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,247,255,.35);
+  background: rgba(3, 13, 28, 0.75);
+  color: #c9f5ff;
+  cursor: pointer;
+}
+
+.app-modal-body {
+  border-top: 1px solid rgba(0, 247, 255, 0.16);
+  border-bottom: 1px solid rgba(0, 247, 255, 0.16);
+  padding: 12px 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.app-modal-line {
+  font-size: 0.66rem;
+  color: #a9d7e9;
+}
+
+.app-modal-actions {
+  padding: 10px 14px 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.modal-action-btn {
+  flex: 1;
+  border: 1px solid rgba(0,247,255,.28);
+  border-radius: 10px;
+  background: rgba(3, 14, 30, 0.74);
+  color: #d8f8ff;
+  padding: 9px 10px;
+  font-size: 0.64rem;
 }
 
 .hidden {
@@ -719,6 +827,16 @@ body {
 @keyframes ringSpin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(12px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @media (min-width: 620px) {
@@ -2391,7 +2509,7 @@ body {
         </aside>
       </section>
       <!-- Search Dock Placeholder -->
-      <section class="search-dock" aria-label="AI Search Placeholder">
+      <section class="search-dock" id="searchDock" aria-label="AI Search Placeholder" role="button" tabindex="0">
         <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
         <div class="search-text">
           <span class="search-primary">Search apps, routines, commands</span>
@@ -2428,11 +2546,11 @@ body {
           </div>
         </div>
         <div class="routine-strip">
-          <div class="routine-card">
+          <div class="routine-card is-interactive" id="routineMorning" role="button" tabindex="0" aria-pressed="false" data-base-time="06:00 AM">
             <div class="routine-title">Morning Sync</div>
             <div class="routine-time">06:00 AM · Pending</div>
           </div>
-          <div class="routine-card">
+          <div class="routine-card is-interactive" id="routineFocus" role="button" tabindex="0" aria-pressed="false" data-base-time="09:00 AM">
             <div class="routine-title">Focus Mode</div>
             <div class="routine-time">09:00 AM · Scheduled</div>
           </div>
@@ -2440,11 +2558,11 @@ body {
       </section>
     </section>
     <nav class="footer-nav" aria-label="Primary Navigation">
-      <div class="nav-item active"><i class="fa-solid fa-house"></i><span>Home</span></div>
-      <div class="nav-item"><i class="fa-solid fa-table-cells-large"></i><span>Apps</span></div>
-      <div class="nav-item"><i class="fa-solid fa-microchip-ai"></i><span>AI</span></div>
-      <div class="nav-item"><i class="fa-solid fa-bell"></i><span>Alerts</span></div>
-      <div class="nav-item"><i class="fa-solid fa-gear"></i><span>Settings</span></div>
+      <div class="nav-item active" role="button" tabindex="0" data-nav="home"><i class="fa-solid fa-house"></i><span>Home</span></div>
+      <div class="nav-item" role="button" tabindex="0" data-nav="apps"><i class="fa-solid fa-table-cells-large"></i><span>Apps</span></div>
+      <div class="nav-item" role="button" tabindex="0" data-nav="ai"><i class="fa-solid fa-microchip-ai"></i><span>AI</span></div>
+      <div class="nav-item" role="button" tabindex="0" data-nav="alerts"><i class="fa-solid fa-bell"></i><span>Alerts</span></div>
+      <div class="nav-item" role="button" tabindex="0" data-nav="settings"><i class="fa-solid fa-gear"></i><span>Settings</span></div>
     </nav>
     <section class="modals-root" id="modalsRoot" aria-live="polite"></section>
     <section class="notifications-root" id="notificationsRoot" aria-live="polite">
@@ -2513,7 +2631,12 @@ body {
       appGrid: document.getElementById("appGrid"),
       appGridStats: document.getElementById("appGridStats"),
       appGridHint: document.getElementById("appGridHint"),
-      toastStack: document.getElementById("toastStack")
+      toastStack: document.getElementById("toastStack"),
+      modalsRoot: document.getElementById("modalsRoot"),
+      navItems: document.querySelectorAll(".footer-nav .nav-item"),
+      searchDock: document.getElementById("searchDock"),
+      routineMorning: document.getElementById("routineMorning"),
+      routineFocus: document.getElementById("routineFocus")
     };
 
     function buildParticles(count) {
@@ -2659,6 +2782,7 @@ body {
 
     function bindGridInteractions() {
       if (!nodes.appGridWrap || !nodes.appGrid) return;
+      const LONG_PRESS_DELAY_MS = 520;
       let holdTimer = 0;
       const startLongPressDetection = () => {
         window.clearTimeout(holdTimer);
@@ -2668,7 +2792,7 @@ body {
           syncGridTileStates();
           updateGridMeta();
           showToast(state.isEditMode ? "Edit mode enabled" : "Edit mode disabled", "fa-pen-ruler");
-        }, 520);
+        }, LONG_PRESS_DELAY_MS);
       };
       const clearHold = () => window.clearTimeout(holdTimer);
 
@@ -2680,6 +2804,158 @@ body {
       nodes.appGridWrap.addEventListener("pointerup", clearHold, { passive: true });
       nodes.appGridWrap.addEventListener("pointercancel", clearHold, { passive: true });
       nodes.appGridWrap.addEventListener("pointerleave", clearHold, { passive: true });
+    }
+
+    function closeModal() {
+      if (nodes.modalsRoot) {
+        nodes.modalsRoot.replaceChildren();
+      }
+      window.removeEventListener("keydown", onModalEscapeKey);
+    }
+
+    function onModalEscapeKey(event) {
+      if (event.key === "Escape") {
+        closeModal();
+      }
+    }
+
+    function openModal(config) {
+      if (!nodes.modalsRoot) return;
+      nodes.modalsRoot.replaceChildren();
+      const backdrop = document.createElement("div");
+      backdrop.className = "app-modal-backdrop";
+      backdrop.addEventListener("click", closeModal);
+
+      const modal = document.createElement("article");
+      modal.className = "app-modal";
+      modal.setAttribute("role", "dialog");
+      modal.setAttribute("aria-modal", "true");
+      modal.innerHTML = `
+        <header class="app-modal-head">
+          <h3 class="app-modal-title">${config.title}</h3>
+          <button class="app-modal-close" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </header>
+        <div class="app-modal-body">
+          ${config.lines.map((line) => `<div class="app-modal-line">${line}</div>`).join("")}
+        </div>
+        <div class="app-modal-actions">
+          ${config.actions.map((label) => `<button class="modal-action-btn" type="button">${label}</button>`).join("")}
+        </div>
+      `;
+
+      modal.querySelector(".app-modal-close")?.addEventListener("click", closeModal);
+      modal.querySelectorAll(".modal-action-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          showToast(`${btn.textContent} queued`, "fa-check");
+          closeModal();
+        });
+      });
+
+      nodes.modalsRoot.append(backdrop, modal);
+      window.addEventListener("keydown", onModalEscapeKey);
+    }
+
+    function setActiveNav(navKey) {
+      nodes.navItems.forEach((item) => {
+        const isActive = item.dataset.nav === navKey;
+        item.classList.toggle("active", isActive);
+      });
+      const labels = {
+        home: "Home grid active",
+        apps: "Apps library staged",
+        ai: "AI console opening",
+        alerts: "Alerts panel opening",
+        settings: "Settings panel opening"
+      };
+      showToast(labels[navKey] || "Navigation updated", "fa-compass");
+    }
+
+    function onNavItemActivate(item) {
+      const navKey = item?.dataset?.nav;
+      if (!navKey) return;
+      setActiveNav(navKey);
+      if (navKey === "ai") {
+        openModal({
+          title: "Jarvis AI Console",
+          lines: [
+            "Neural assist interface will be expanded in upcoming parts.",
+            "Use quick prompts to run device routines and smart actions."
+          ],
+          actions: ["Voice Prompt", "Quick Analyze"]
+        });
+      } else if (navKey === "settings") {
+        openModal({
+          title: "System Settings",
+          lines: [
+            "Customize launcher visuals, layouts, and automation rules.",
+            "Current build includes preview controls only."
+          ],
+          actions: ["Theme", "Routines"]
+        });
+      }
+    }
+
+    function bindNavigation() {
+      if (!nodes.navItems || !nodes.navItems.length) return;
+      nodes.navItems.forEach((item) => {
+        item.addEventListener("click", () => onNavItemActivate(item));
+        item.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onNavItemActivate(item);
+          }
+        });
+      });
+    }
+
+    function setRoutineState(routineNode, label) {
+      if (!routineNode) return;
+      const pressed = routineNode.getAttribute("aria-pressed") === "true";
+      const nextPressed = !pressed;
+      routineNode.setAttribute("aria-pressed", String(nextPressed));
+      routineNode.classList.toggle("is-done", nextPressed);
+      const timeNode = routineNode.querySelector(".routine-time");
+      if (timeNode) {
+        const base = routineNode.dataset.baseTime || "00:00";
+        timeNode.textContent = `${base} · ${nextPressed ? "Completed" : "Pending"}`;
+      }
+      showToast(`${label} ${nextPressed ? "completed" : "reset"}`, nextPressed ? "fa-circle-check" : "fa-rotate-left");
+    }
+
+    function bindRoutines() {
+      const wireRoutine = (node, label) => {
+        if (!node) return;
+        node.addEventListener("click", () => setRoutineState(node, label));
+        node.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setRoutineState(node, label);
+          }
+        });
+      };
+      wireRoutine(nodes.routineMorning, "Morning Sync");
+      wireRoutine(nodes.routineFocus, "Focus Mode");
+    }
+
+    function bindSearchDock() {
+      if (!nodes.searchDock) return;
+      const onActivate = () => {
+        openModal({
+          title: "Smart Search",
+          lines: [
+            "Live app suggestions and intent parsing arrive in Part 4.",
+            "Current shell accepts command stubs and shortcut triggers."
+          ],
+          actions: ["Command Stub", "Recent Queries"]
+        });
+      };
+      nodes.searchDock.addEventListener("click", onActivate);
+      nodes.searchDock.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onActivate();
+        }
+      });
     }
 
     function formatBattery(level, charging) {
@@ -2779,6 +3055,9 @@ body {
       buildParticles(90);
       renderAppGrid();
       bindGridInteractions();
+      bindNavigation();
+      bindRoutines();
+      bindSearchDock();
       startClock();
       bindBattery();
       rotateContextLines();
