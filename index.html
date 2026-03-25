@@ -323,6 +323,175 @@ body {
   background: radial-gradient(circle at 50% 20%, rgba(0,247,255,.08), transparent 58%);
 }
 
+.app-grid-wrap {
+  position: absolute;
+  inset: 80px 12px 86px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 247, 255, 0.16);
+  background: rgba(2, 10, 20, 0.28);
+  backdrop-filter: blur(4px);
+  overflow: hidden;
+  z-index: 4;
+}
+
+.app-grid {
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+
+.app-item {
+  appearance: none;
+  border: 1px solid rgba(0, 247, 255, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(10, 25, 46, .62), rgba(6, 16, 32, .45));
+  color: #d7f7ff;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  grid-template-rows: auto auto;
+  gap: 7px;
+  padding: 6px;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.app-item::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 0;
+  background: linear-gradient(180deg, transparent, rgba(0, 247, 255, 0.09));
+  transition: height var(--transition-base);
+}
+
+.app-item:hover,
+.app-item:focus-visible {
+  outline: none;
+  transform: translateY(-1px);
+  border-color: rgba(0, 247, 255, 0.45);
+  box-shadow: 0 0 12px rgba(0, 247, 255, 0.26);
+}
+
+.app-item:active {
+  transform: scale(0.97);
+}
+
+.app-item.is-opening::after {
+  height: 100%;
+}
+
+.app-icon-shell {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  box-shadow: inset 0 0 10px rgba(255,255,255,.08), 0 0 12px rgba(0,247,255,.14);
+}
+
+.app-label {
+  font-size: 0.6rem;
+  line-height: 1.15;
+  text-align: center;
+  width: 100%;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 0.5rem;
+  display: grid;
+  place-items: center;
+  color: var(--warning);
+  opacity: 0;
+  transform: scale(.65);
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.app-item.is-favorite .app-badge {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.app-item.is-editing {
+  animation: appJiggle 0.48s ease-in-out infinite;
+}
+
+.app-grid-wrap.is-editing .app-item {
+  border-color: rgba(255, 209, 102, 0.36);
+}
+
+.app-grid-meta {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.56rem;
+  color: #8db8cc;
+  letter-spacing: .03em;
+}
+
+.meta-chip {
+  border: 1px solid rgba(0, 247, 255, .2);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(0, 12, 24, .56);
+}
+
+.toast-stack {
+  position: absolute;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 8px;
+  width: min(320px, calc(100% - 32px));
+}
+
+.toast-item {
+  pointer-events: auto;
+  border: 1px solid rgba(0, 247, 255, 0.26);
+  border-radius: 12px;
+  background: rgba(3, 14, 30, 0.86);
+  backdrop-filter: blur(10px);
+  color: #d8f7ff;
+  font-size: 0.66rem;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 0 12px rgba(0, 247, 255, 0.18);
+  opacity: 0;
+  transform: translateY(10px);
+  animation: toastIn 220ms ease forwards;
+}
+
+.toast-item.is-out {
+  animation: toastOut 220ms ease forwards;
+}
+
 .orb-layer {
   position: absolute;
   inset: 0;
@@ -437,6 +606,21 @@ body {
   bottom: 12px;
   display: flex;
   gap: 8px;
+}
+
+@keyframes appJiggle {
+  0%, 100% { transform: rotate(-1.1deg); }
+  50% { transform: rotate(1.1deg); }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(8px); }
 }
 
 .routine-card {
@@ -2217,6 +2401,13 @@ body {
       <!-- Workspace -->
       <section class="workspace" id="workspace" aria-label="Launcher Workspace">
         <div class="workspace-overlay"></div>
+        <div class="app-grid-wrap" id="appGridWrap" aria-label="Smart App Grid">
+          <div class="app-grid" id="appGrid" role="grid" aria-label="Apps"></div>
+          <div class="app-grid-meta">
+            <span class="meta-chip" id="appGridStats">Apps: 0</span>
+            <span class="meta-chip" id="appGridHint">Tap app to launch</span>
+          </div>
+        </div>
         <div class="widget-rail" id="widgetRail">
           <div class="widget-card">
             <div class="widget-title">Clock</div>
@@ -2256,7 +2447,9 @@ body {
       <div class="nav-item"><i class="fa-solid fa-gear"></i><span>Settings</span></div>
     </nav>
     <section class="modals-root" id="modalsRoot" aria-live="polite"></section>
-    <section class="notifications-root" id="notificationsRoot" aria-live="polite"></section>
+    <section class="notifications-root" id="notificationsRoot" aria-live="polite">
+      <div class="toast-stack" id="toastStack"></div>
+    </section>
   </main>
   <!-- Firebase CDNs (configured in Part 7) -->
   <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2278,7 +2471,31 @@ body {
       pointerX: window.innerWidth * 0.5,
       pointerY: window.innerHeight * 0.5,
       orbTiltX: 0,
-      orbTiltY: 0
+      orbTiltY: 0,
+      isEditMode: false,
+      appOpenCount: 0,
+      appCatalog: [
+        { id: "phone", label: "Phone", icon: "fa-phone", colorA: "#00f7ff", colorB: "#007bff", favorite: true },
+        { id: "messages", label: "Messages", icon: "fa-comment-dots", colorA: "#14e6ff", colorB: "#268cff" },
+        { id: "camera", label: "Camera", icon: "fa-camera", colorA: "#60efff", colorB: "#3f7bff" },
+        { id: "gallery", label: "Gallery", icon: "fa-images", colorA: "#42fff2", colorB: "#2b85ff" },
+        { id: "maps", label: "Maps", icon: "fa-map-location-dot", colorA: "#00ffd5", colorB: "#0083ff" },
+        { id: "browser", label: "Browser", icon: "fa-globe", colorA: "#00e8ff", colorB: "#007bff" },
+        { id: "music", label: "Music", icon: "fa-music", colorA: "#00f7ff", colorB: "#3e91ff" },
+        { id: "mail", label: "Mail", icon: "fa-envelope", colorA: "#79f4ff", colorB: "#2a74ff" },
+        { id: "calendar", label: "Calendar", icon: "fa-calendar-days", colorA: "#3ef0ff", colorB: "#006fff" },
+        { id: "clock", label: "Clock", icon: "fa-clock", colorA: "#4bfbff", colorB: "#1780ff", favorite: true },
+        { id: "weather", label: "Weather", icon: "fa-cloud-sun", colorA: "#72f7ff", colorB: "#2788ff" },
+        { id: "notes", label: "Notes", icon: "fa-note-sticky", colorA: "#00ffd0", colorB: "#0087ff" },
+        { id: "files", label: "Files", icon: "fa-folder-open", colorA: "#00f0ff", colorB: "#0074ff" },
+        { id: "contacts", label: "Contacts", icon: "fa-address-book", colorA: "#45f3ff", colorB: "#3282ff" },
+        { id: "security", label: "Security", icon: "fa-shield-halved", colorA: "#59fcff", colorB: "#2486ff" },
+        { id: "wallet", label: "Wallet", icon: "fa-wallet", colorA: "#47f0ff", colorB: "#1269ff" },
+        { id: "store", label: "Store", icon: "fa-store", colorA: "#00ebff", colorB: "#147dff" },
+        { id: "assistant", label: "Jarvis AI", icon: "fa-robot", colorA: "#76f8ff", colorB: "#3d95ff", favorite: true },
+        { id: "settings", label: "Settings", icon: "fa-gear", colorA: "#6ce4ff", colorB: "#3074ff" },
+        { id: "tools", label: "Toolkit", icon: "fa-screwdriver-wrench", colorA: "#64f2ff", colorB: "#2f8eff" }
+      ]
     };
 
     const nodes = {
@@ -2291,7 +2508,12 @@ body {
       launcherRoot: document.getElementById("launcherRoot"),
       bgGrid: document.querySelector(".bg-grid"),
       bgGlow: document.querySelector(".bg-glow"),
-      particleLayer: document.getElementById("particleLayer")
+      particleLayer: document.getElementById("particleLayer"),
+      appGridWrap: document.getElementById("appGridWrap"),
+      appGrid: document.getElementById("appGrid"),
+      appGridStats: document.getElementById("appGridStats"),
+      appGridHint: document.getElementById("appGridHint"),
+      toastStack: document.getElementById("toastStack")
     };
 
     function buildParticles(count) {
@@ -2323,6 +2545,141 @@ body {
     function startClock() {
       updateTimeUI();
       window.setInterval(updateTimeUI, 1000);
+    }
+
+    function showToast(message, iconClass = "fa-circle-info") {
+      if (!nodes.toastStack) return;
+      const toast = document.createElement("article");
+      toast.className = "toast-item";
+      toast.innerHTML = `<i class="fa-solid ${iconClass}" aria-hidden="true"></i><span>${message}</span>`;
+      nodes.toastStack.prepend(toast);
+      if (nodes.toastStack.children.length > 3) {
+        nodes.toastStack.lastElementChild.remove();
+      }
+      window.setTimeout(() => {
+        toast.classList.add("is-out");
+        window.setTimeout(() => toast.remove(), 240);
+      }, 1600);
+    }
+
+    function updateGridMeta() {
+      if (nodes.appGridStats) {
+        nodes.appGridStats.textContent = `Apps: ${state.appCatalog.length} · Opens: ${state.appOpenCount}`;
+      }
+      if (nodes.appGridHint) {
+        nodes.appGridHint.textContent = state.isEditMode ? "Edit mode active (long press to exit)" : "Tap app to launch";
+      }
+    }
+
+    function renderAppGrid() {
+      if (!nodes.appGrid) return;
+      const frag = document.createDocumentFragment();
+      state.appCatalog.forEach((app, index) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `app-item${app.favorite ? " is-favorite" : ""}${state.isEditMode ? " is-editing" : ""}`;
+        btn.setAttribute("role", "gridcell");
+        btn.setAttribute("aria-label", app.label);
+        btn.dataset.appId = app.id;
+        btn.dataset.appIndex = String(index);
+        btn.dataset.favorite = app.favorite ? "1" : "0";
+
+        btn.innerHTML = `
+          <span class="app-icon-shell" style="background: linear-gradient(145deg, ${app.colorA}, ${app.colorB});">
+            <i class="fa-solid ${app.icon}" aria-hidden="true"></i>
+          </span>
+          <span class="app-label">${app.label}</span>
+          <span class="app-badge" aria-hidden="true"><i class="fa-solid fa-star"></i></span>
+        `;
+        frag.appendChild(btn);
+      });
+      nodes.appGrid.replaceChildren(frag);
+      updateGridMeta();
+    }
+
+    function syncGridTileStates() {
+      if (!nodes.appGrid) return;
+      const tiles = nodes.appGrid.querySelectorAll(".app-item");
+      tiles.forEach((tile) => {
+        tile.classList.toggle("is-editing", state.isEditMode);
+      });
+    }
+
+    function toggleAppFavorite(appId) {
+      const target = state.appCatalog.find((app) => app.id === appId);
+      if (!target) return;
+      target.favorite = !target.favorite;
+      const tile = nodes.appGrid?.querySelector(`.app-item[data-app-id="${appId}"]`);
+      if (tile) {
+        tile.classList.toggle("is-favorite", target.favorite);
+        tile.dataset.favorite = target.favorite ? "1" : "0";
+      }
+      showToast(`${target.label} ${target.favorite ? "pinned as favorite" : "removed from favorites"}`, "fa-star");
+      updateGridMeta();
+    }
+
+    function openApp(appId) {
+      const target = state.appCatalog.find((app) => app.id === appId);
+      if (!target) return;
+      state.appOpenCount += 1;
+      updateGridMeta();
+      showToast(`Opening ${target.label}`, "fa-bolt");
+    }
+
+    function onGridPointerDown(event) {
+      const tile = event.target.closest(".app-item");
+      if (!tile) return;
+      tile.classList.add("is-opening");
+      window.setTimeout(() => tile.classList.remove("is-opening"), 260);
+    }
+
+    function onGridClick(event) {
+      const tile = event.target.closest(".app-item");
+      if (!tile) return;
+      const appId = tile.dataset.appId;
+      if (state.isEditMode) {
+        toggleAppFavorite(appId);
+      } else {
+        openApp(appId);
+      }
+    }
+
+    function onGridKeyDown(event) {
+      const tile = event.target.closest(".app-item");
+      if (!tile) return;
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        if (state.isEditMode) {
+          toggleAppFavorite(tile.dataset.appId);
+        } else {
+          openApp(tile.dataset.appId);
+        }
+      }
+    }
+
+    function bindGridInteractions() {
+      if (!nodes.appGridWrap || !nodes.appGrid) return;
+      let holdTimer = 0;
+      const startLongPressDetection = () => {
+        window.clearTimeout(holdTimer);
+        holdTimer = window.setTimeout(() => {
+          state.isEditMode = !state.isEditMode;
+          nodes.appGridWrap.classList.toggle("is-editing", state.isEditMode);
+          syncGridTileStates();
+          updateGridMeta();
+          showToast(state.isEditMode ? "Edit mode enabled" : "Edit mode disabled", "fa-pen-ruler");
+        }, 520);
+      };
+      const clearHold = () => window.clearTimeout(holdTimer);
+
+      nodes.appGrid.addEventListener("pointerdown", onGridPointerDown, { passive: true });
+      nodes.appGrid.addEventListener("click", onGridClick);
+      nodes.appGrid.addEventListener("keydown", onGridKeyDown);
+
+      nodes.appGridWrap.addEventListener("pointerdown", startLongPressDetection, { passive: true });
+      nodes.appGridWrap.addEventListener("pointerup", clearHold, { passive: true });
+      nodes.appGridWrap.addEventListener("pointercancel", clearHold, { passive: true });
+      nodes.appGridWrap.addEventListener("pointerleave", clearHold, { passive: true });
     }
 
     function formatBattery(level, charging) {
@@ -2419,7 +2776,9 @@ body {
     }
 
     function init() {
-      buildParticles(120);
+      buildParticles(90);
+      renderAppGrid();
+      bindGridInteractions();
       startClock();
       bindBattery();
       rotateContextLines();
