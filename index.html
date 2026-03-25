@@ -793,6 +793,43 @@ body {
   font-size: 0.64rem;
 }
 
+.search-command-input {
+  width: 100%;
+  border: 1px solid rgba(0,247,255,.28);
+  border-radius: 10px;
+  background: rgba(4, 14, 30, 0.8);
+  color: #ddf9ff;
+  font-size: 0.68rem;
+  padding: 10px 11px;
+  outline: none;
+}
+
+.search-command-input:focus {
+  border-color: rgba(0,247,255,.5);
+  box-shadow: 0 0 0 2px rgba(0,247,255,.12);
+}
+
+.search-intent-preview {
+  font-size: 0.62rem;
+  color: #89bfda;
+}
+
+.search-suggestion-list {
+  display: grid;
+  gap: 7px;
+}
+
+.search-suggestion-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(0,247,255,.22);
+  border-radius: 10px;
+  background: rgba(3, 12, 24, 0.72);
+  color: #ccefff;
+  padding: 8px 10px;
+  font-size: 0.62rem;
+}
+
 .hidden {
   display: none !important;
 }
@@ -2592,6 +2629,8 @@ body {
       orbTiltY: 0,
       isEditMode: false,
       appOpenCount: 0,
+      searchQuery: "",
+      lastIntent: "",
       appCatalog: [
         { id: "phone", label: "Phone", icon: "fa-phone", colorA: "#00f7ff", colorB: "#007bff", favorite: true },
         { id: "messages", label: "Messages", icon: "fa-comment-dots", colorA: "#14e6ff", colorB: "#268cff" },
@@ -2639,6 +2678,25 @@ body {
       routineFocus: document.getElementById("routineFocus")
     };
 
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"'\/]/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;",
+        "/": "&#47;"
+      }[char]));
+    }
+
+    function safeIconClass(value) {
+      return /^fa-[a-z0-9-]+$/i.test(value) ? value : "fa-circle";
+    }
+
+    function safeHexColor(value, fallback) {
+      return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : fallback;
+    }
+
     function buildParticles(count) {
       if (!nodes.particleLayer) return;
       const fragment = document.createDocumentFragment();
@@ -2674,7 +2732,12 @@ body {
       if (!nodes.toastStack) return;
       const toast = document.createElement("article");
       toast.className = "toast-item";
-      toast.innerHTML = `<i class="fa-solid ${iconClass}" aria-hidden="true"></i><span>${message}</span>`;
+      const icon = document.createElement("i");
+      icon.className = `fa-solid ${iconClass}`;
+      icon.setAttribute("aria-hidden", "true");
+      const text = document.createElement("span");
+      text.textContent = message;
+      toast.append(icon, text);
       nodes.toastStack.prepend(toast);
       if (nodes.toastStack.children.length > 3) {
         nodes.toastStack.lastElementChild.remove();
@@ -2706,14 +2769,23 @@ body {
         btn.dataset.appId = app.id;
         btn.dataset.appIndex = String(index);
         btn.dataset.favorite = app.favorite ? "1" : "0";
-
-        btn.innerHTML = `
-          <span class="app-icon-shell" style="background: linear-gradient(145deg, ${app.colorA}, ${app.colorB});">
-            <i class="fa-solid ${app.icon}" aria-hidden="true"></i>
-          </span>
-          <span class="app-label">${app.label}</span>
-          <span class="app-badge" aria-hidden="true"><i class="fa-solid fa-star"></i></span>
-        `;
+        const iconShell = document.createElement("span");
+        iconShell.className = "app-icon-shell";
+        iconShell.style.background = `linear-gradient(145deg, ${safeHexColor(app.colorA, "#00f7ff")}, ${safeHexColor(app.colorB, "#007bff")})`;
+        const iconNode = document.createElement("i");
+        iconNode.className = `fa-solid ${safeIconClass(app.icon)}`;
+        iconNode.setAttribute("aria-hidden", "true");
+        iconShell.appendChild(iconNode);
+        const label = document.createElement("span");
+        label.className = "app-label";
+        label.textContent = app.label;
+        const badge = document.createElement("span");
+        badge.className = "app-badge";
+        badge.setAttribute("aria-hidden", "true");
+        const badgeIcon = document.createElement("i");
+        badgeIcon.className = "fa-solid fa-star";
+        badge.appendChild(badgeIcon);
+        btn.append(iconShell, label, badge);
         frag.appendChild(btn);
       });
       nodes.appGrid.replaceChildren(frag);
@@ -2830,29 +2902,160 @@ body {
       modal.className = "app-modal";
       modal.setAttribute("role", "dialog");
       modal.setAttribute("aria-modal", "true");
+      const safeTitle = escapeHtml(config.title);
+      const safeLines = (config.lines || []).map((line) => `<div class="app-modal-line">${escapeHtml(line)}</div>`).join("");
+      const safeActions = (config.actions || []).map((label) => `<button class="modal-action-btn" type="button">${escapeHtml(label)}</button>`).join("");
       modal.innerHTML = `
         <header class="app-modal-head">
-          <h3 class="app-modal-title">${config.title}</h3>
+          <h3 class="app-modal-title">${safeTitle}</h3>
           <button class="app-modal-close" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
         </header>
         <div class="app-modal-body">
-          ${config.lines.map((line) => `<div class="app-modal-line">${line}</div>`).join("")}
+          ${safeLines}
         </div>
         <div class="app-modal-actions">
-          ${config.actions.map((label) => `<button class="modal-action-btn" type="button">${label}</button>`).join("")}
+          ${safeActions}
         </div>
       `;
 
       modal.querySelector(".app-modal-close")?.addEventListener("click", closeModal);
-      modal.querySelectorAll(".modal-action-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          showToast(`${btn.textContent} queued`, "fa-check");
-          closeModal();
+      if (!config.disableDefaultActionHandling) {
+        modal.querySelectorAll(".modal-action-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            showToast(`${btn.textContent} queued`, "fa-check");
+            closeModal();
+          });
         });
-      });
+      }
 
       nodes.modalsRoot.append(backdrop, modal);
       window.addEventListener("keydown", onModalEscapeKey);
+      if (typeof config.afterRender === "function") {
+        config.afterRender(modal);
+      }
+    }
+
+    function parseSearchIntent(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) return "Type a command to see intent.";
+      if (q.includes("open ")) return "Intent: launch app";
+      if (q.includes("routine") || q.includes("focus")) return "Intent: routine control";
+      if (q.includes("weather") || q.includes("clock") || q.includes("time")) return "Intent: widget info";
+      if (q.includes("settings")) return "Intent: open settings";
+      return "Intent: general search";
+    }
+
+    function getSearchSuggestions(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) {
+        return ["Open Phone", "Start Focus Mode", "Show Weather", "Open Settings"];
+      }
+      const appMatches = state.appCatalog
+        .map((app) => app.label)
+        .filter((label) => label.toLowerCase().includes(q))
+        .slice(0, 4);
+      const prefixed = appMatches.map((label) => `Open ${label}`);
+      if (q.includes("routine") || q.includes("focus")) prefixed.unshift("Run Focus Mode Routine");
+      if (q.includes("weather")) prefixed.unshift("Show Weather Widget");
+      if (!prefixed.length) prefixed.push(`Search web for "${query.trim()}"`);
+      return prefixed.slice(0, 4);
+    }
+
+    function executeSearchCommand(inputValue) {
+      const raw = inputValue.trim();
+      if (!raw) {
+        showToast("Enter a search command first", "fa-circle-info");
+        return;
+      }
+      state.searchQuery = raw;
+      state.lastIntent = parseSearchIntent(raw);
+      const lowered = raw.toLowerCase();
+      const openMatch = lowered.match(/^open\s+(.+)$/);
+      if (openMatch) {
+        const targetName = openMatch[1].trim();
+        const app = state.appCatalog.find((item) => item.label.toLowerCase() === targetName);
+        if (app) {
+          openApp(app.id);
+        } else {
+          const shortName = targetName.length > 32 ? `${targetName.slice(0, 32)}…` : targetName;
+          showToast(`No exact app match for "${shortName}"`, "fa-magnifying-glass");
+        }
+        return;
+      }
+      if (lowered.includes("focus")) {
+        setRoutineState(nodes.routineFocus, "Focus Mode");
+        return;
+      }
+      showToast(`Search queued: ${raw}`, "fa-magnifying-glass");
+    }
+
+    function openSearchModal() {
+      openModal({
+        title: "Smart Search",
+        lines: [
+          "Live app suggestions and intent parsing are now active in preview mode.",
+          "Try commands like: Open Phone, focus routine, weather."
+        ],
+        actions: ["Run Command", "Close"],
+        disableDefaultActionHandling: true,
+        afterRender(modal) {
+          const body = modal.querySelector(".app-modal-body");
+          const actions = modal.querySelector(".app-modal-actions");
+          if (!body || !actions) return;
+          const input = document.createElement("input");
+          input.type = "text";
+          input.className = "search-command-input";
+          input.placeholder = "Type command… e.g. Open Camera";
+          input.value = state.searchQuery;
+
+          const intentNode = document.createElement("div");
+          intentNode.className = "search-intent-preview";
+
+          const list = document.createElement("div");
+          list.className = "search-suggestion-list";
+
+          const renderPreview = () => {
+            const intent = parseSearchIntent(input.value);
+            intentNode.textContent = intent;
+            const suggestions = getSearchSuggestions(input.value);
+            list.replaceChildren();
+            suggestions.forEach((text) => {
+              const btn = document.createElement("button");
+              btn.type = "button";
+              btn.className = "search-suggestion-item";
+              btn.textContent = text;
+              btn.addEventListener("click", () => {
+                input.value = text;
+                renderPreview();
+                executeSearchCommand(input.value);
+              });
+              list.appendChild(btn);
+            });
+          };
+
+          input.addEventListener("input", renderPreview);
+          input.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              executeSearchCommand(input.value);
+            }
+          });
+
+          const [runBtn, closeBtn] = actions.querySelectorAll(".modal-action-btn");
+          if (runBtn) {
+            runBtn.textContent = "Run Command";
+            runBtn.addEventListener("click", () => executeSearchCommand(input.value));
+          }
+          if (closeBtn) {
+            closeBtn.textContent = "Close";
+            closeBtn.addEventListener("click", closeModal);
+          }
+
+          body.append(input, intentNode, list);
+          renderPreview();
+          input.focus();
+        }
+      });
     }
 
     function setActiveNav(navKey) {
@@ -2940,14 +3143,7 @@ body {
     function bindSearchDock() {
       if (!nodes.searchDock) return;
       const onActivate = () => {
-        openModal({
-          title: "Smart Search",
-          lines: [
-            "Live app suggestions and intent parsing arrive in Part 4.",
-            "Current shell accepts command stubs and shortcut triggers."
-          ],
-          actions: ["Command Stub", "Recent Queries"]
-        });
+        openSearchModal();
       };
       nodes.searchDock.addEventListener("click", onActivate);
       nodes.searchDock.addEventListener("keydown", (event) => {
