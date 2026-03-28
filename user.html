@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Instagram Automation - User</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --card: rgba(255, 255, 255, 0.05);
+      --n1: #8a2be2;
+      --n2: #00f0ff;
+      --n3: #ff00ff;
+      --text: #f1f3ff;
+      --muted: #b5b8d1;
+      --radius: 22px;
+      --shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top right, rgba(138,43,226,0.14), transparent 35%), radial-gradient(circle at bottom left, rgba(0,240,255,0.12), transparent 35%), var(--bg);
+      color: var(--text);
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+    }
+    .app { max-width: 430px; margin: 0 auto; min-height: 100vh; position: relative; padding-bottom: 88px; }
+    .screen { display: none; animation: fade .35s ease; padding: 14px 14px 92px; }
+    .screen.active { display: block; }
+    @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .splash {
+      position: fixed; inset: 0; z-index: 300;
+      background: linear-gradient(150deg, #090909, #10051f, #061519);
+      display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity .6s ease;
+    }
+    .logo {
+      width: 104px; height: 104px; border-radius: 30px; display: grid; place-items: center; font-size: 2.2rem; color: var(--n2);
+      background: var(--card); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 0 24px rgba(138,43,226,.5), 0 0 38px rgba(0,240,255,.35), var(--shadow); animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+    .title { font-family: 'Orbitron', sans-serif; margin-top: 16px; letter-spacing: 1px; text-align: center; }
+    .loader { width: 160px; height: 8px; border-radius: 99px; margin-top: 12px; background: rgba(255,255,255,.15); overflow: hidden; }
+    .loader > span { display: block; height: 100%; width: 40%; border-radius: 99px; background: linear-gradient(90deg, var(--n1), var(--n2), var(--n3)); animation: load 1.2s linear infinite; }
+    @keyframes load { from { transform: translateX(-120%); } to { transform: translateX(260%); } }
+    .card {
+      background: var(--card); border: 1px solid rgba(255,255,255,0.12); border-radius: var(--radius); backdrop-filter: blur(14px);
+      box-shadow: var(--shadow), 0 0 12px rgba(138,43,226,.2); padding: 14px; margin: 12px 0;
+    }
+    .card h3, .card h4 { margin: 0 0 10px; font-family: 'Orbitron', sans-serif; font-weight: 600; font-size: .93rem; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 12px; }
+    .icon-btn {
+      width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(255,255,255,.2); color: var(--text);
+      background: rgba(255,255,255,.06); display: inline-grid; place-items: center; margin-left: 6px; cursor: pointer;
+    }
+    .row { display: flex; gap: 10px; }
+    .row > * { flex: 1; }
+    .stat { border-radius: 16px; padding: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); text-align: center; }
+    .stat b { display: block; font-size: 1.15rem; color: var(--n2); }
+    .muted { color: var(--muted); font-size: .8rem; }
+    .input, textarea {
+      width: 100%; border: 1px solid rgba(255,255,255,.18); border-radius: 14px; background: rgba(255,255,255,.04); color: var(--text);
+      padding: 11px 12px; outline: none; margin: 6px 0; font-family: inherit;
+    }
+    textarea { min-height: 86px; resize: vertical; }
+    .btn {
+      width: 100%; border: 0; border-radius: 14px; padding: 11px; margin-top: 8px; color: #fff;
+      background: linear-gradient(92deg, var(--n1), var(--n2)); font-weight: 600; cursor: pointer;
+    }
+    .btn.alt { background: linear-gradient(92deg, #373737, #4b4b4b); }
+    .btn.warn { background: linear-gradient(92deg, #ff5a94, #ff8348); }
+    .switch { position: relative; width: 50px; height: 26px; display: inline-block; }
+    .switch input { display: none; }
+    .slider { position: absolute; inset: 0; border-radius: 99px; background: #3a3a3a; transition: .2s; cursor: pointer; }
+    .slider:before { content: ''; width: 22px; height: 22px; border-radius: 50%; background: #fff; position: absolute; left: 2px; top: 2px; transition: .2s; }
+    input:checked + .slider { background: linear-gradient(90deg, var(--n1), var(--n2)); }
+    input:checked + .slider:before { transform: translateX(24px); }
+    .chip {
+      display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 999px;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); margin: 4px 4px 0 0; font-size: .78rem;
+    }
+    .progress { width: 100%; height: 9px; border-radius: 99px; background: rgba(255,255,255,.18); overflow: hidden; margin-top: 8px; }
+    .progress > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--n2), var(--n3)); transition: width .25s ease; }
+    .quick-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .qa {
+      border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.03);
+      text-align: center; padding: 8px 4px; font-size: .73rem;
+    }
+    .qa i { color: var(--n2); display: block; margin-bottom: 4px; }
+    .list-item {
+      padding: 10px; border: 1px solid rgba(255,255,255,.11); border-radius: 12px; margin-top: 8px; display: flex; align-items: center;
+      justify-content: space-between; gap: 8px; font-size: .85rem; background: rgba(255,255,255,.03);
+    }
+    .bottom-nav {
+      position: fixed; left: 50%; transform: translateX(-50%); bottom: 8px; width: min(410px, calc(100% - 14px)); display: grid;
+      grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 8px; border-radius: 20px; background: rgba(18,18,18,.85); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(16px); z-index: 50;
+    }
+    .nav-btn {
+      border: 0; background: transparent; color: var(--muted); font-size: .72rem; padding: 6px 2px; border-radius: 10px;
+      display: grid; place-items: center; gap: 4px; cursor: pointer;
+    }
+    .nav-btn.active { color: #fff; background: linear-gradient(125deg, rgba(138,43,226,.4), rgba(0,240,255,.35)); box-shadow: 0 0 12px rgba(0,240,255,.25); }
+    .tiny { font-size: .76rem; }
+    canvas { width: 100%; max-height: 170px; background: rgba(255,255,255,.02); border-radius: 14px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="splash" id="splash">
+    <div class="logo"><i class="fa-brands fa-instagram"></i></div>
+    <div class="title">INSTA AUTOMATION</div>
+    <div class="loader"><span></span></div>
+  </div>
+  <div class="app">
+    <section id="loginScreen" class="screen active">
+      <div class="card" style="margin-top:28px">
+        <div class="topbar"><h3>Welcome Creator</h3><i class="fa-solid fa-bolt" style="color:var(--n2)"></i></div>
+        <p class="muted">Login to manage automation workflows with realtime sync.</p>
+        <input id="usernameInput" class="input" placeholder="Enter username" maxlength="32" />
+        <button class="btn" id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+        <button class="btn alt" id="guestBtn"><i class="fa-regular fa-user"></i> Continue as Guest</button>
+      </div>
+    </section>
+    <section id="appScreen" class="screen">
+      <div id="dashboard" class="pane">
+        <div class="topbar">
+          <div><b id="greeting">Hello</b><div class="muted tiny">Creator Dashboard</div></div>
+          <div><button class="icon-btn"><i class="fa-regular fa-user"></i></button><button class="icon-btn"><i class="fa-regular fa-bell"></i></button><button class="icon-btn" id="jumpSettings"><i class="fa-solid fa-gear"></i></button></div>
+        </div>
+        <div class="row">
+          <div class="stat"><span class="muted tiny">Followers</span><b id="followers">0</b></div>
+          <div class="stat"><span class="muted tiny">Following</span><b id="following">0</b></div>
+          <div class="stat"><span class="muted tiny">Engagement</span><b id="engagement">0%</b></div>
+        </div>
+        <div class="card"><h4>Growth Graph</h4><canvas id="growthChart" width="360" height="170"></canvas></div>
+        <div class="card">
+          <h4>Quick Actions</h4>
+          <div class="quick-actions">
+            <div class="qa"><i class="fa-solid fa-reply"></i>Replies</div>
+            <div class="qa"><i class="fa-regular fa-paper-plane"></i>Bulk DM</div>
+            <div class="qa"><i class="fa-solid fa-heart"></i>Auto Like</div>
+            <div class="qa"><i class="fa-solid fa-calendar-check"></i>Scheduler</div>
+          </div>
+        </div>
+      </div>
+      <div id="automation" class="pane hidden">
+        <div class="card">
+          <h4>Auto Reply System</h4>
+          <input class="input" id="replyKeyword" placeholder="Keyword (e.g. price)" />
+          <textarea id="replyText" placeholder="Reply text"></textarea>
+          <div class="list-item"><span>Enable Auto Reply</span><label class="switch"><input id="replyToggle" type="checkbox"><span class="slider"></span></label></div>
+          <button class="btn" id="saveReply"><i class="fa-solid fa-floppy-disk"></i> Save Reply</button>
+          <div id="replyList"></div>
+        </div>
+        <div class="card">
+          <h4>Bulk DM Sender</h4>
+          <textarea id="dmMessage" placeholder="Message"></textarea>
+          <textarea id="dmUsers" placeholder="Usernames (comma separated)"></textarea>
+          <button class="btn" id="startDm"><i class="fa-solid fa-paper-plane"></i> Start Sending</button>
+          <div class="progress"><span id="dmProgress"></span></div>
+          <div class="muted tiny" id="dmStatus">Idle</div>
+        </div>
+        <div class="card">
+          <h4>Auto Like System</h4>
+          <input id="hashtags" class="input" placeholder="#fashion,#fitness" />
+          <input id="dailyLimit" class="input" type="number" min="1" max="1000" value="100" />
+          <div class="list-item"><span>Running</span><label class="switch"><input id="likeToggle" type="checkbox"><span class="slider"></span></label></div>
+        </div>
+        <div class="card">
+          <h4>Auto Follow / Unfollow</h4>
+          <input id="targetUser" class="input" placeholder="Target username" />
+          <div class="row"><button class="btn" id="followBtn"><i class="fa-solid fa-user-plus"></i> Follow</button><button class="btn warn" id="unfollowBtn"><i class="fa-solid fa-user-minus"></i> Unfollow</button></div>
+          <div class="muted tiny" id="followStatus">Awaiting action</div>
+        </div>
+      </div>
+      <div id="tools" class="pane hidden">
+        <div class="card">
+          <h4>Post Scheduler</h4>
+          <input id="postImage" class="input" placeholder="Image URL" />
+          <textarea id="postCaption" placeholder="Caption"></textarea>
+          <input id="postTags" class="input" placeholder="#tags" />
+          <input id="postTime" class="input" type="datetime-local" />
+          <button class="btn" id="savePost"><i class="fa-solid fa-calendar-plus"></i> Save Schedule</button>
+          <div id="postList"></div>
+        </div>
+        <div class="card">
+          <h4>AI Tools</h4>
+          <input id="aiTopic" class="input" placeholder="Topic for AI caption" />
+          <button class="btn" id="genCaption"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Caption</button>
+          <textarea id="captionResult" placeholder="Generated caption"></textarea>
+          <button class="btn alt" id="genTags"><i class="fa-solid fa-hashtag"></i> Generate Hashtags</button>
+          <div id="tagResult"></div>
+        </div>
+      </div>
+      <div id="analytics" class="pane hidden">
+        <div class="card"><h4>Analytics</h4><canvas id="analyticsChart" width="360" height="170"></canvas></div>
+        <div class="row"><div class="stat"><span class="muted tiny">Likes / Day</span><b id="likesPerDay">0</b></div><div class="stat"><span class="muted tiny">Replies / Day</span><b id="repliesPerDay">0</b></div></div>
+      </div>
+      <div id="settings" class="pane hidden">
+        <div class="card">
+          <h4>Settings</h4>
+          <div class="list-item"><span>Push Alerts</span><label class="switch"><input class="settingToggle" data-key="pushAlerts" type="checkbox"><span class="slider"></span></label></div>
+          <div class="list-item"><span>Dark Neon Effects</span><label class="switch"><input class="settingToggle" data-key="neonFx" type="checkbox" checked><span class="slider"></span></label></div>
+          <div class="list-item"><span>Safe Mode</span><label class="switch"><input class="settingToggle" data-key="safeMode" type="checkbox"><span class="slider"></span></label></div>
+          <button class="btn warn" id="logoutBtn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+        </div>
+        <div class="card">
+          <h4>Multi Account Manager</h4>
+          <input id="newAccount" class="input" placeholder="Add @username" />
+          <button class="btn" id="addAccount"><i class="fa-solid fa-plus"></i> Add Account</button>
+          <div id="accountList"></div>
+        </div>
+        <div class="card"><h4>Project Status</h4><div class="muted tiny">PROJECT READY – INSTAGRAM AUTOMATION APP (DARK NEON EDITION)</div></div>
+      </div>
+    </section>
+    <nav class="bottom-nav hidden" id="bottomNav">
+      <button class="nav-btn active" data-pane="dashboard"><i class="fa-solid fa-house"></i>Home</button>
+      <button class="nav-btn" data-pane="automation"><i class="fa-solid fa-robot"></i>Auto</button>
+      <button class="nav-btn" data-pane="tools"><i class="fa-solid fa-wand-magic-sparkles"></i>Tools</button>
+      <button class="nav-btn" data-pane="analytics"><i class="fa-solid fa-chart-line"></i>Stats</button>
+      <button class="nav-btn" data-pane="settings"><i class="fa-solid fa-sliders"></i>Settings</button>
+    </nav>
+  </div>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT",
+      appId: "YOUR_APP_ID"
+    };
+    let db = null;
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+    } catch (e) { db = null; }
+
+    const dom = {
+      splash: document.getElementById('splash'), loginScreen: document.getElementById('loginScreen'), appScreen: document.getElementById('appScreen'),
+      bottomNav: document.getElementById('bottomNav'), usernameInput: document.getElementById('usernameInput'), greeting: document.getElementById('greeting'),
+      followers: document.getElementById('followers'), following: document.getElementById('following'), engagement: document.getElementById('engagement'),
+      likesPerDay: document.getElementById('likesPerDay'), repliesPerDay: document.getElementById('repliesPerDay'), replyKeyword: document.getElementById('replyKeyword'),
+      replyText: document.getElementById('replyText'), replyToggle: document.getElementById('replyToggle'), replyList: document.getElementById('replyList'),
+      dmMessage: document.getElementById('dmMessage'), dmUsers: document.getElementById('dmUsers'), dmProgress: document.getElementById('dmProgress'),
+      dmStatus: document.getElementById('dmStatus'), hashtags: document.getElementById('hashtags'), dailyLimit: document.getElementById('dailyLimit'),
+      likeToggle: document.getElementById('likeToggle'), targetUser: document.getElementById('targetUser'), followStatus: document.getElementById('followStatus'),
+      postImage: document.getElementById('postImage'), postCaption: document.getElementById('postCaption'), postTags: document.getElementById('postTags'),
+      postTime: document.getElementById('postTime'), postList: document.getElementById('postList'), aiTopic: document.getElementById('aiTopic'),
+      captionResult: document.getElementById('captionResult'), tagResult: document.getElementById('tagResult'), accountList: document.getElementById('accountList')
+    };
+    const state = {
+      userId: localStorage.getItem('ai_user_id') || '',
+      username: localStorage.getItem('ai_username') || '',
+      accountList: JSON.parse(localStorage.getItem('ai_accounts') || '[]'),
+      autoReplies: JSON.parse(localStorage.getItem('ai_replies') || '[]'),
+      scheduled: JSON.parse(localStorage.getItem('ai_scheduled') || '[]'),
+      settings: JSON.parse(localStorage.getItem('ai_settings') || '{"pushAlerts":true,"neonFx":true,"safeMode":false}'),
+      stats: JSON.parse(localStorage.getItem('ai_stats') || '{}')
+    };
+    const uid = () => {
+      if (state.userId) return state.userId;
+      if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+      const nextCounter = Number(localStorage.getItem('ai_uid_counter') || '0') + 1;
+      localStorage.setItem('ai_uid_counter', String(nextCounter));
+      return 'u_' + Date.now().toString(36) + '_' + nextCounter.toString(36);
+    };
+    function saveLocal() {
+      localStorage.setItem('ai_user_id', state.userId);
+      localStorage.setItem('ai_username', state.username);
+      localStorage.setItem('ai_accounts', JSON.stringify(state.accountList));
+      localStorage.setItem('ai_replies', JSON.stringify(state.autoReplies));
+      localStorage.setItem('ai_scheduled', JSON.stringify(state.scheduled));
+      localStorage.setItem('ai_settings', JSON.stringify(state.settings));
+      localStorage.setItem('ai_stats', JSON.stringify(state.stats));
+    }
+    function setPane(name) {
+      document.querySelectorAll('.pane').forEach(p => p.classList.add('hidden'));
+      const pane = document.getElementById(name);
+      if (pane) pane.classList.remove('hidden');
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.pane === name));
+    }
+    function drawChart(canvasId, values) {
+      const c = document.getElementById(canvasId), x = c.getContext('2d'), w = c.width, h = c.height;
+      x.clearRect(0, 0, w, h);
+      x.strokeStyle = 'rgba(255,255,255,.18)';
+      x.beginPath(); x.moveTo(10, h - 20); x.lineTo(w - 10, h - 20); x.stroke();
+      x.strokeStyle = '#00f0ff'; x.lineWidth = 2; x.beginPath();
+      values.forEach((v, i) => {
+        const px = 20 + (i * (w - 40) / Math.max(values.length - 1, 1));
+        const py = h - 30 - (v / 100) * (h - 60);
+        if (i === 0) x.moveTo(px, py); else x.lineTo(px, py);
+      });
+      x.stroke();
+      x.fillStyle = 'rgba(138,43,226,.12)';
+      x.lineTo(w - 20, h - 20); x.lineTo(20, h - 20); x.closePath(); x.fill();
+    }
+    function renderStats() {
+      const base = state.stats;
+      if (!base.followers) {
+        base.followers = Math.floor(900 + Math.random() * 3000);
+        base.following = Math.floor(130 + Math.random() * 900);
+        base.engagement = (4 + Math.random() * 6).toFixed(1);
+        base.likesPerDay = Math.floor(80 + Math.random() * 300);
+        base.repliesPerDay = Math.floor(20 + Math.random() * 90);
+        saveLocal();
+      }
+      dom.followers.textContent = base.followers;
+      dom.following.textContent = base.following;
+      dom.engagement.textContent = base.engagement + '%';
+      dom.likesPerDay.textContent = base.likesPerDay;
+      dom.repliesPerDay.textContent = base.repliesPerDay;
+      const points = Array.from({ length: 7 }, (_, i) => Math.min(100, 40 + i * 7 + Math.random() * 20));
+      drawChart('growthChart', points);
+      drawChart('analyticsChart', points.map(v => Math.max(20, v - 10 + Math.random() * 15)));
+    }
+    const renderReplies = () => { dom.replyList.innerHTML = state.autoReplies.map((r, i) => `<div class="list-item"><span><b>${r.keyword}</b>: ${r.reply}</span><button class="icon-btn" onclick="removeReply(${i})"><i class="fa-solid fa-xmark"></i></button></div>`).join('') || '<div class="muted tiny">No reply rules yet</div>'; };
+    const renderPosts = () => { dom.postList.innerHTML = state.scheduled.map((p, i) => `<div class="list-item"><span>${p.time}<br><span class='muted tiny'>${p.caption.slice(0,48)}</span></span><button class='icon-btn' onclick='removePost(${i})'><i class="fa-solid fa-trash"></i></button></div>`).join('') || '<div class="muted tiny">No scheduled posts yet</div>'; };
+    const renderAccounts = () => { dom.accountList.innerHTML = state.accountList.map((a, i) => `<div class="list-item"><span>@${a}</span><button class="btn alt tiny" style="width:auto;padding:7px 10px;margin:0" onclick="switchAccount(${i})">Switch</button></div>`).join('') || '<div class="muted tiny">No extra accounts</div>'; };
+    const sync = (path, payload) => {
+      if (db && state.userId) {
+        db.ref(path).set(payload).catch(err => console.warn(`Firebase sync failed for user ${state.userId} at ${path}:`, err?.message || err));
+      }
+    };
+    function startApp(name) {
+      state.username = name; state.userId = uid();
+      dom.greeting.textContent = 'Hi, ' + state.username;
+      dom.loginScreen.classList.remove('active'); dom.appScreen.classList.add('active'); dom.bottomNav.classList.remove('hidden');
+      saveLocal();
+      sync('/users/' + state.userId, { username: state.username, stats: state.stats, automationSettings: state.settings });
+      sync('/settings/featureToggle', { autoReply: true, bulkDm: true, autoLike: true, scheduler: true });
+      renderStats(); renderReplies(); renderPosts(); renderAccounts();
+      document.querySelectorAll('.settingToggle').forEach(t => t.checked = !!state.settings[t.dataset.key]);
+      setPane('dashboard');
+    }
+    window.removeReply = i => { state.autoReplies.splice(i, 1); saveLocal(); renderReplies(); sync('/autoReply/' + state.userId, state.autoReplies); };
+    window.removePost = i => { state.scheduled.splice(i, 1); saveLocal(); renderPosts(); sync('/scheduledPosts/' + state.userId, state.scheduled); };
+    window.switchAccount = i => { const account = state.accountList[i]; if (!account) return; state.username = account; dom.greeting.textContent = 'Hi, ' + account; saveLocal(); sync('/users/' + state.userId + '/username', account); };
+    document.getElementById('loginBtn').onclick = () => { const n = dom.usernameInput.value.trim(); if (n.length < 3) return alert('Username must be at least 3 characters.'); startApp(n); };
+    document.getElementById('guestBtn').onclick = () => startApp('guest_creator');
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.onclick = () => setPane(btn.dataset.pane));
+    document.getElementById('jumpSettings').onclick = () => setPane('settings');
+    document.getElementById('saveReply').onclick = () => {
+      const keyword = dom.replyKeyword.value.trim(), reply = dom.replyText.value.trim();
+      if (!keyword || !reply) return alert('Fill keyword and reply');
+      state.autoReplies.push({ keyword, reply, enabled: dom.replyToggle.checked });
+      saveLocal(); renderReplies(); sync('/autoReply/' + state.userId, state.autoReplies); dom.replyKeyword.value = ''; dom.replyText.value = '';
+    };
+    document.getElementById('startDm').onclick = () => {
+      const msg = dom.dmMessage.value.trim(), users = dom.dmUsers.value.split(',').map(v => v.trim()).filter(Boolean);
+      if (!msg || !users.length) return alert('Enter message and users list');
+      let i = 0; dom.dmStatus.textContent = 'Sending...';
+      const timer = setInterval(() => {
+        i += 1; const pct = Math.round((i / users.length) * 100);
+        dom.dmProgress.style.width = pct + '%'; dom.dmStatus.textContent = `Sent to ${Math.min(i, users.length)}/${users.length}`;
+        if (i >= users.length) { clearInterval(timer); dom.dmStatus.textContent = 'Completed'; }
+      }, 260);
+    };
+    dom.likeToggle.onchange = () => sync('/users/' + state.userId + '/automationSettings/autoLike', { hashtags: dom.hashtags.value.trim(), dailyLimit: Number(dom.dailyLimit.value || 0), active: dom.likeToggle.checked });
+    const followAction = action => {
+      const target = dom.targetUser.value.trim();
+      if (!target) return alert('Enter target username');
+      dom.followStatus.textContent = `${action} request simulated for @${target}`;
+      sync('/users/' + state.userId + '/automationSettings/followAction', { target, action, at: new Date().toISOString() });
+    };
+    document.getElementById('followBtn').onclick = () => followAction('follow');
+    document.getElementById('unfollowBtn').onclick = () => followAction('unfollow');
+    document.getElementById('savePost').onclick = () => {
+      const image = dom.postImage.value.trim(), caption = dom.postCaption.value.trim(), hashtags = dom.postTags.value.trim(), time = dom.postTime.value;
+      if (!image || !caption || !time) return alert('Image URL, caption and time are required');
+      state.scheduled.push({ image, caption, hashtags, time });
+      saveLocal(); renderPosts(); sync('/scheduledPosts/' + state.userId, state.scheduled);
+      dom.postImage.value = dom.postCaption.value = dom.postTags.value = dom.postTime.value = '';
+    };
+    document.getElementById('genCaption').onclick = () => {
+      const topic = dom.aiTopic.value.trim() || 'your content';
+      dom.captionResult.value = `✨ Building with ${topic} today. Consistency + creativity = unstoppable growth. 🚀\n#CreatorLife #InstagramGrowth`;
+    };
+    document.getElementById('genTags').onclick = () => {
+      const topic = (dom.aiTopic.value.trim() || 'creator').replace(/\s+/g, '').toLowerCase();
+      const tags = ['#' + topic, '#viral', '#instagood', '#growthhacks', '#contentcreator', '#reels'];
+      dom.tagResult.innerHTML = tags.map(t => `<span class="chip">${t}</span>`).join('');
+    };
+    document.querySelectorAll('.settingToggle').forEach(t => t.onchange = () => { state.settings[t.dataset.key] = t.checked; saveLocal(); sync('/users/' + state.userId + '/automationSettings', state.settings); });
+    document.getElementById('logoutBtn').onclick = () => {
+      localStorage.removeItem('ai_username');
+      state.username = '';
+      dom.loginScreen.classList.add('active'); dom.appScreen.classList.remove('active'); dom.bottomNav.classList.add('hidden'); dom.usernameInput.value = '';
+    };
+    document.getElementById('addAccount').onclick = () => {
+      const account = document.getElementById('newAccount').value.replace('@', '').trim();
+      if (!account) return;
+      if (!state.accountList.includes(account)) state.accountList.push(account);
+      saveLocal(); renderAccounts(); document.getElementById('newAccount').value = '';
+    };
+    setTimeout(() => { dom.splash.style.opacity = '0'; setTimeout(() => dom.splash.style.display = 'none', 600); }, 1600);
+    if (state.username) setTimeout(() => startApp(state.username), 700);
+  </script>
+</body>
+</html>

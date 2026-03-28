@@ -1,1 +1,261 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Instagram Automation - Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --card: rgba(255,255,255,0.05);
+      --n1: #8a2be2;
+      --n2: #00f0ff;
+      --n3: #ff00ff;
+      --text: #f6f7ff;
+      --muted: #b9bcd6;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, rgba(255,0,255,.14), transparent 30%), radial-gradient(circle at bottom right, rgba(0,240,255,.14), transparent 35%), var(--bg);
+      color: var(--text);
+      font-family: 'Poppins', sans-serif;
+    }
+    .app { max-width: 430px; margin: 0 auto; min-height: 100vh; padding: 12px 12px 28px; }
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 22px;
+      padding: 14px;
+      margin: 10px 0;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 10px 38px rgba(0,0,0,.45), 0 0 12px rgba(138,43,226,.22);
+      animation: fade .25s ease;
+    }
+    h2, h3, h4 { margin: 0 0 10px; font-family: 'Orbitron', sans-serif; }
+    .muted { color: var(--muted); font-size: .8rem; }
+    .row { display: flex; gap: 8px; }
+    .row > * { flex: 1; }
+    .stat {
+      border-radius: 14px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.1);
+      text-align: center;
+      padding: 11px 8px;
+    }
+    .stat b { display: block; font-size: 1.15rem; color: var(--n2); }
+    .input, textarea {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,.2);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 12px;
+      margin: 6px 0;
+      font-family: inherit;
+    }
+    textarea { min-height: 82px; }
+    .btn {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      padding: 10px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 6px;
+      background: linear-gradient(95deg, var(--n1), var(--n2));
+    }
+    .btn.alt { background: linear-gradient(95deg, #444, #666); }
+    .btn.warn { background: linear-gradient(95deg, #ff5e8b, #ff9b3f); }
+    .item {
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.03);
+      padding: 10px;
+      margin: 8px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: .85rem;
+    }
+    .hidden { display: none !important; }
+    .switch { position: relative; width: 50px; height: 26px; display: inline-block; }
+    .switch input { display: none; }
+    .slider { position: absolute; inset: 0; border-radius: 99px; background: #3e3e3e; transition: .2s; cursor: pointer; }
+    .slider:before { content: ''; width: 22px; height: 22px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; transition: .2s; }
+    input:checked + .slider { background: linear-gradient(95deg, var(--n1), var(--n2)); }
+    input:checked + .slider:before { transform: translateX(24px); }
+    @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="loginView" class="card">
+      <h2>Admin Control</h2>
+      <p class="muted">Secure panel for user and feature management.</p>
+      <input id="adminId" class="input" placeholder="Admin ID" />
+      <input id="adminPassword" class="input" type="password" placeholder="Password" />
+      <button class="btn" id="adminLoginBtn"><i class="fa-solid fa-shield-halved"></i> Login</button>
+    </section>
+    <section id="adminPanel" class="hidden">
+      <div class="card">
+        <h3>Dashboard</h3>
+        <div class="row">
+          <div class="stat"><span class="muted">Total Users</span><b id="totalUsers">0</b></div>
+          <div class="stat"><span class="muted">Active</span><b id="activeUsers">0</b></div>
+          <div class="stat"><span class="muted">Revenue</span><b id="revenue">$0</b></div>
+        </div>
+      </div>
+      <div class="card"><h4>User Management</h4><div id="userList"></div></div>
+      <div class="card">
+        <h4>Subscription System</h4>
+        <input id="planName" class="input" placeholder="Plan name" />
+        <input id="planPrice" class="input" type="number" min="0" placeholder="Price" />
+        <button class="btn" id="addPlan"><i class="fa-solid fa-plus"></i> Add / Update Plan</button>
+        <div id="planList"></div>
+      </div>
+      <div class="card">
+        <h4>Notification System</h4>
+        <textarea id="globalNotice" placeholder="Message to all users"></textarea>
+        <button class="btn" id="sendNotice"><i class="fa-solid fa-bullhorn"></i> Send</button>
+      </div>
+      <div class="card">
+        <h4>Feature Control Panel</h4>
+        <div class="item"><span>Auto Reply</span><label class="switch"><input type="checkbox" class="featureToggle" data-key="autoReply" checked><span class="slider"></span></label></div>
+        <div class="item"><span>Bulk DM</span><label class="switch"><input type="checkbox" class="featureToggle" data-key="bulkDm" checked><span class="slider"></span></label></div>
+        <div class="item"><span>Auto Like</span><label class="switch"><input type="checkbox" class="featureToggle" data-key="autoLike" checked><span class="slider"></span></label></div>
+        <div class="item"><span>Scheduler</span><label class="switch"><input type="checkbox" class="featureToggle" data-key="scheduler" checked><span class="slider"></span></label></div>
+      </div>
+      <div class="card"><h4>Reports System</h4><div id="reportList"></div></div>
+    </section>
+  </div>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT",
+      appId: "YOUR_APP_ID"
+    };
+    let db = null;
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+    } catch (e) { db = null; }
+    const state = {
+      users: [],
+      plans: JSON.parse(localStorage.getItem('admin_plans') || '[]'),
+      features: JSON.parse(localStorage.getItem('admin_features') || '{"autoReply":true,"bulkDm":true,"autoLike":true,"scheduler":true}'),
+      reports: JSON.parse(localStorage.getItem('admin_reports') || '[{"id":1,"text":"Spam report for @sample","status":"open"},{"id":2,"text":"Login issue from user28","status":"open"}]')
+    };
+    const dom = {
+      loginView: document.getElementById('loginView'),
+      adminPanel: document.getElementById('adminPanel'),
+      totalUsers: document.getElementById('totalUsers'),
+      activeUsers: document.getElementById('activeUsers'),
+      revenue: document.getElementById('revenue'),
+      userList: document.getElementById('userList'),
+      planList: document.getElementById('planList'),
+      reportList: document.getElementById('reportList')
+    };
+    const sync = (path, payload) => { if (db) db.ref(path).set(payload).catch(err => console.warn(`Admin Firebase sync failed at ${path}:`, err?.message || err)); };
+    function refreshDashboard() {
+      const total = state.users.length;
+      const active = state.users.filter(u => !u.banned).length;
+      const revenue = state.plans.reduce((sum, p) => sum + Number(p.price || 0), 0) * Math.max(total, 1);
+      dom.totalUsers.textContent = total;
+      dom.activeUsers.textContent = active;
+      dom.revenue.textContent = '$' + revenue;
+    }
+    const renderUsers = () => {
+      dom.userList.innerHTML = state.users.map((u, i) => `<div class='item'><span>${u.username || 'user_' + (i + 1)} ${u.banned ? '(Banned)' : ''}</span><button class='btn ${u.banned ? 'alt' : 'warn'}' style='width:auto;margin:0;padding:7px 10px' onclick='toggleBan(${i})'>${u.banned ? 'Unban' : 'Ban'}</button></div>`).join('') || '<div class="muted">No users found in Firebase. Create users from user panel.</div>';
+    };
+    const renderPlans = () => {
+      dom.planList.innerHTML = state.plans.map((p, i) => `<div class='item'><span>${p.name} - $${p.price} ${p.active ? '(Active)' : '(Inactive)'}</span><button class='btn alt' style='width:auto;margin:0;padding:7px 10px' onclick='togglePlan(${i})'>${p.active ? 'Deactivate' : 'Activate'}</button></div>`).join('') || '<div class="muted">No plans yet</div>';
+    };
+    const renderReports = () => { dom.reportList.innerHTML = state.reports.map((r, i) => `<div class='item'><span>${r.text} <span class='muted'>(${r.status})</span></span><button class='btn' style='width:auto;margin:0;padding:7px 10px' onclick='resolveReport(${i})'>Action</button></div>`).join(''); };
+    window.toggleBan = i => {
+      state.users[i].banned = !state.users[i].banned;
+      renderUsers(); refreshDashboard();
+      const id = state.users[i].id;
+      if (id) sync('/users/' + id + '/automationSettings/banned', state.users[i].banned);
+    };
+    window.togglePlan = i => {
+      state.plans[i].active = !state.plans[i].active;
+      localStorage.setItem('admin_plans', JSON.stringify(state.plans));
+      renderPlans(); refreshDashboard(); sync('/settings/subscriptions', state.plans);
+    };
+    window.resolveReport = i => {
+      state.reports[i].status = state.reports[i].status === 'open' ? 'resolved' : 'open';
+      localStorage.setItem('admin_reports', JSON.stringify(state.reports));
+      renderReports();
+    };
+    const applyFeaturesToUI = () => { document.querySelectorAll('.featureToggle').forEach(t => t.checked = !!state.features[t.dataset.key]); };
+    function loadUsersFromFirebase() {
+      if (!db) {
+        state.users = JSON.parse(localStorage.getItem('admin_fake_users') || '[{"id":"local-1","username":"guest_creator","banned":false}]');
+        refreshDashboard(); renderUsers(); return;
+      }
+      db.ref('/users').once('value').then(snap => {
+        const val = snap.val() || {};
+        state.users = Object.keys(val).map(id => ({
+          id,
+          username: val[id].username || id,
+          banned: !!(val[id].automationSettings && val[id].automationSettings.banned)
+        }));
+        localStorage.setItem('admin_fake_users', JSON.stringify(state.users));
+        refreshDashboard(); renderUsers();
+      }).catch(() => {
+        state.users = [];
+        refreshDashboard(); renderUsers();
+      });
+    }
+    document.getElementById('adminLoginBtn').onclick = () => {
+      const id = document.getElementById('adminId').value.trim();
+      const pwd = document.getElementById('adminPassword').value.trim();
+      const success = () => {
+        dom.loginView.classList.add('hidden');
+        dom.adminPanel.classList.remove('hidden');
+        renderPlans(); renderReports(); applyFeaturesToUI(); loadUsersFromFirebase();
+      };
+      if (!db) return alert('Firebase configuration required for admin access.');
+      db.ref('/admin').once('value').then(snap => {
+        const admin = snap.val() || {};
+        if (id === String(admin.id || '') && pwd === String(admin.password || '')) return success();
+        alert('Invalid admin credentials');
+      }).catch(() => alert('Login failed'));
+    };
+    document.getElementById('addPlan').onclick = () => {
+      const name = document.getElementById('planName').value.trim();
+      const price = Number(document.getElementById('planPrice').value || 0);
+      if (!name) return;
+      const existing = state.plans.find(p => p.name.toLowerCase() === name.toLowerCase());
+      if (existing) existing.price = price; else state.plans.push({ name, price, active: true });
+      localStorage.setItem('admin_plans', JSON.stringify(state.plans));
+      renderPlans(); refreshDashboard(); sync('/settings/subscriptions', state.plans);
+      document.getElementById('planName').value = '';
+      document.getElementById('planPrice').value = '';
+    };
+    document.getElementById('sendNotice').onclick = () => {
+      const message = document.getElementById('globalNotice').value.trim();
+      if (!message) return;
+      sync('/settings/adminBroadcast', { message, at: new Date().toISOString() });
+      alert('Notification sent to all users');
+      document.getElementById('globalNotice').value = '';
+    };
+    document.querySelectorAll('.featureToggle').forEach(t => t.onchange = () => {
+      state.features[t.dataset.key] = t.checked;
+      localStorage.setItem('admin_features', JSON.stringify(state.features));
+      sync('/settings/featureToggle', state.features);
+    });
+  </script>
+</body>
+</html>
